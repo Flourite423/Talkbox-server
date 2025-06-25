@@ -159,8 +159,12 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
         return message_service->get_groups(token);
     } else if (path == "/api/get_group_messages" && method == "GET") {
         return message_service->get_group_messages(body, token);
+    } else if (method != "GET" && method != "POST") {
+        // 不支持的HTTP方法
+        return create_json_response("error", "不支持的HTTP方法: " + method);
     } else {
-        return "HTTP/1.1 404 Not Found\r\n\r\n";
+        // 无效的API路径
+        return create_json_response("error", "无效的API路径: " + path);
     }
 }
 

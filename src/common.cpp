@@ -14,6 +14,7 @@ std::string get_current_timestamp() {
 
 // 从JSON字符串中解析值
 std::string parse_json_value(const std::string& json, const std::string& key) {
+    std::cout<< "" << "Parsing JSON: " << json << " for key: " << key << std::endl;
     std::string search_key = "\"" + key + "\"";
     size_t pos = json.find(search_key);
     if (pos == std::string::npos) {
@@ -61,19 +62,24 @@ std::string parse_json_value(const std::string& json, const std::string& key) {
 
 // 创建JSON响应
 std::string create_json_response(const std::string& status, const std::string& data) {
+    std::string json_body;
+    
+    if (data.empty()) {
+        json_body = "{\"status\":\"" + status + "\",\"data\":\"\"}";
+    } else if (data[0] == '{' || data[0] == '[') {
+        json_body = "{\"status\":\"" + status + "\",\"data\":" + data + "}";
+    } else {
+        json_body = "{\"status\":\"" + status + "\",\"data\":\"" + data + "\"}";
+    }
+    
     std::ostringstream oss;
     oss << "HTTP/1.1 200 OK\r\n";
     oss << "Content-Type: application/json\r\n";
+    oss << "Content-Length: " << json_body.length() << "\r\n";
+    oss << "Connection: close\r\n";  // 指示连接将在响应后关闭
     oss << "Access-Control-Allow-Origin: *\r\n";  // 允许跨域
     oss << "\r\n";
-    
-    if (data.empty()) {
-        oss << "{\"status\":\"" << status << "\",\"data\":\"\"}";
-    } else if (data[0] == '{' || data[0] == '[') {
-        oss << "{\"status\":\"" << status << "\",\"data\":" << data << "}";
-    } else {
-        oss << "{\"status\":\"" << status << "\",\"data\":\"" << data << "\"}";
-    }
+    oss << json_body;
     
     return oss.str();
 }
