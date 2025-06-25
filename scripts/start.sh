@@ -12,5 +12,9 @@ echo ""
 # 创建必要的目录
 mkdir -p uploads
 
+# 获取脚本所在目录的绝对路径
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+PROJECT_ROOT="$( dirname "$SCRIPT_DIR" )"
+
 # 启动服务器
-../build/talkbox-server $PORT
+"$PROJECT_ROOT/build/talkbox-server" $PORT
