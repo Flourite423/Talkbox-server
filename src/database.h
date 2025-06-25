@@ -4,7 +4,7 @@
 #include <sqlite3.h>
 #include <string>
 #include <vector>
-#include "server.h"
+#include "common.h"
 
 class Database {
 public:
