@@ -133,3 +133,34 @@ std::unordered_map<int, User>& UserManager::get_online_users() {
 std::mutex& UserManager::get_users_mutex() {
     return users_mutex;
 }
+
+// 新增：获取用户信息API实现
+std::string UserManager::get_user_profile(const std::string& token) {
+    int user_id = get_user_id_by_token(token);
+    if (user_id == -1) {
+        return create_json_response("error", "无效的token");
+    }
+    
+    std::lock_guard<std::mutex> lock(users_mutex);
+    auto it = online_users.find(user_id);
+    if (it != online_users.end()) {
+        const User& user = it->second;
+        std::string data = "{\"user_id\":" + std::to_string(user.user_id) + 
+                          ",\"username\":\"" + user.username + "\"}";
+        return create_json_response("success", data);
+    }
+    
+    return create_json_response("error", "用户不在线");
+}
+
+std::string UserManager::get_username_by_id(int user_id) {
+    // 首先检查在线用户
+    std::lock_guard<std::mutex> lock(users_mutex);
+    auto it = online_users.find(user_id);
+    if (it != online_users.end()) {
+        return it->second.username;
+    }
+    
+    // 如果不在线，从数据库查询
+    return db->get_username_by_id(user_id);
+}

@@ -49,8 +49,15 @@ std::string ForumService::get_posts(const std::string& body) {
             json_array << ",";
         }
         
+        // 获取用户名
+        std::string username = db->get_username_by_id(posts[i].user_id);
+        if (!username.empty()) {
+            posts[i].username = username;
+        }
+        
         json_array << "{\"post_id\":" << posts[i].post_id
                   << ",\"user_id\":" << posts[i].user_id
+                  << ",\"username\":\"" << posts[i].username << "\""
                   << ",\"title\":\"" << posts[i].title << "\""
                   << ",\"content\":\"" << posts[i].content << "\""
                   << ",\"timestamp\":\"" << posts[i].timestamp << "\"";
@@ -113,10 +120,18 @@ std::string ForumService::get_post_replies(const std::string& body) {
     
     for (size_t i = 0; i < replies.size(); ++i) {
         if (i > 0) json_array << ",";
+        
+        // 获取用户名
+        std::string username = db->get_username_by_id(replies[i].user_id);
+        if (!username.empty()) {
+            replies[i].username = username;
+        }
+        
         json_array << "{"
                    << "\"reply_id\":" << replies[i].reply_id << ","
                    << "\"post_id\":" << replies[i].post_id << ","
                    << "\"user_id\":" << replies[i].user_id << ","
+                   << "\"username\":\"" << replies[i].username << "\","
                    << "\"content\":\"" << replies[i].content << "\","
                    << "\"timestamp\":\"" << replies[i].timestamp << "\""
                    << "}";
@@ -125,4 +140,42 @@ std::string ForumService::get_post_replies(const std::string& body) {
     json_array << "]";
     
     return create_json_response("success", json_array.str());
+}
+
+std::string ForumService::get_post_detail(int post_id) {
+    Post post = db->get_post_by_id(post_id);
+    
+    if (post.post_id == -1) {
+        return create_json_response("error", "帖子不存在");
+    }
+    
+    // 获取用户名
+    std::string username = db->get_username_by_id(post.user_id);
+    if (!username.empty()) {
+        post.username = username;
+    }
+    
+    std::ostringstream json;
+    json << "{\"post_id\":" << post.post_id
+         << ",\"user_id\":" << post.user_id
+         << ",\"username\":\"" << post.username << "\""
+         << ",\"title\":\"" << post.title << "\""
+         << ",\"content\":\"" << post.content << "\""
+         << ",\"timestamp\":\"" << post.timestamp << "\"";
+    
+    // 添加回复
+    if (!post.replies.empty()) {
+        json << ",\"replies\":[";
+        for (size_t i = 0; i < post.replies.size(); ++i) {
+            if (i > 0) {
+                json << ",";
+            }
+            json << "\"" << post.replies[i] << "\"";
+        }
+        json << "]";
+    }
+    
+    json << "}";
+    
+    return create_json_response("success", json.str());
 }

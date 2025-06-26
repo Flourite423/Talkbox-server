@@ -80,6 +80,21 @@ curl -s -X POST $SERVER_URL/api/login \
   -d '{"username":"alice","password":"wrongpassword"}' | jq .
 echo ""
 
+echo "1.9 测试获取Alice用户信息..."
+curl -s -X GET $SERVER_URL/api/user/profile \
+  -H "Authorization: Bearer $ALICE_TOKEN" | jq .
+echo ""
+
+echo "1.10 测试获取Bob用户信息..."
+curl -s -X GET $SERVER_URL/api/user/profile \
+  -H "Authorization: Bearer $BOB_TOKEN" | jq .
+echo ""
+
+echo "1.11 测试无效token获取用户信息（应该失败）..."
+curl -s -X GET $SERVER_URL/api/user/profile \
+  -H "Authorization: Bearer invalid_token" | jq .
+echo ""
+
 # ========================================
 # 即时通讯API测试
 # ========================================
@@ -122,17 +137,27 @@ curl -s -X POST $SERVER_URL/api/send_message \
   -d '{"receiver_id":"1","content":"这条消息不应该发送成功","type":"text"}' | jq .
 echo ""
 
-echo "2.6 Alice获取所有消息..."
+echo "2.6 Alice获取所有消息（应包含sender_username字段）..."
 curl -s -X GET $SERVER_URL/api/get_messages \
   -H "Authorization: Bearer $ALICE_TOKEN" | jq .
 echo ""
 
-echo "2.7 Alice获取联系人列表..."
+echo "2.7 Bob获取所有消息（应包含sender_username字段）..."
+curl -s -X GET $SERVER_URL/api/get_messages \
+  -H "Authorization: Bearer $BOB_TOKEN" | jq .
+echo ""
+
+echo "2.7 Bob获取所有消息（应包含sender_username字段）..."
+curl -s -X GET $SERVER_URL/api/get_messages \
+  -H "Authorization: Bearer $BOB_TOKEN" | jq .
+echo ""
+
+echo "2.8 Alice获取联系人列表..."
 curl -s -X GET $SERVER_URL/api/get_contacts \
   -H "Authorization: Bearer $ALICE_TOKEN" | jq .
 echo ""
 
-echo "2.8 Bob获取联系人列表..."
+echo "2.9 Bob获取联系人列表..."
 curl -s -X GET $SERVER_URL/api/get_contacts \
   -H "Authorization: Bearer $BOB_TOKEN" | jq .
 echo ""
@@ -220,7 +245,7 @@ curl -s -X POST $SERVER_URL/api/send_message \
   -d "{\"group_id\":\"$GROUP_ID\",\"content\":\"大家好，我是Charlie，请多指教！\",\"type\":\"text\"}" | jq .
 echo ""
 
-echo "3.12 获取群组消息历史..."
+echo "3.12 获取群组消息历史（应包含sender_username字段）..."
 curl -s -X GET $SERVER_URL/api/get_group_messages \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ALICE_TOKEN" \
@@ -284,41 +309,56 @@ curl -s -X POST $SERVER_URL/api/create_post \
   -d '{"title":"新手求助","content":"刚开始学习编程，有什么好的学习路径推荐吗？"}' | jq .
 echo ""
 
-echo "4.4 获取帖子列表..."
+echo "4.4 获取帖子列表（应包含username字段）..."
 POSTS_RESPONSE=$(curl -s -X GET $SERVER_URL/api/get_posts)
 echo $POSTS_RESPONSE | jq .
 POST_ID=$(echo $POSTS_RESPONSE | jq -r '.data[0].post_id // empty')
 echo "第一个帖子ID: $POST_ID"
 echo ""
 
-echo "4.5 Alice回复第一个帖子..."
+echo "4.5 获取第一个帖子的详情..."
+curl -s -X GET "$SERVER_URL/api/post/$POST_ID" | jq .
+echo ""
+
+echo "4.6 获取不存在帖子的详情（应该失败）..."
+curl -s -X GET "$SERVER_URL/api/post/999" | jq .
+echo ""
+
+echo "4.7 Alice回复第一个帖子..."
 curl -s -X POST $SERVER_URL/api/reply_post \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ALICE_TOKEN" \
   -d "{\"post_id\":\"$POST_ID\",\"content\":\"感谢大家的支持！希望大家能多多交流。\"}" | jq .
 echo ""
 
-echo "4.6 Bob回复第一个帖子..."
+echo "4.7 Alice回复第一个帖子..."
+curl -s -X POST $SERVER_URL/api/reply_post \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ALICE_TOKEN" \
+  -d "{\"post_id\":\"$POST_ID\",\"content\":\"感谢大家的支持！希望大家能多多交流。\"}" | jq .
+echo ""
+
+echo "4.8 Bob回复第一个帖子..."
 curl -s -X POST $SERVER_URL/api/reply_post \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $BOB_TOKEN" \
   -d "{\"post_id\":\"$POST_ID\",\"content\":\"这个系统很不错！界面简洁，功能齐全。\"}" | jq .
 echo ""
 
-echo "4.7 Charlie回复第一个帖子..."
+echo "4.9 Charlie回复第一个帖子..."
 curl -s -X POST $SERVER_URL/api/reply_post \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $CHARLIE_TOKEN" \
   -d "{\"post_id\":\"$POST_ID\",\"content\":\"同意楼上，期待更多功能！\"}" | jq .
 echo ""
 
-echo "4.8 获取第一个帖子的回复列表..."
+echo "4.10 获取第一个帖子的回复列表（应包含username字段）..."
 curl -s -X GET $SERVER_URL/api/get_post_replies \
   -H "Content-Type: application/json" \
   -d "{\"post_id\":\"$POST_ID\"}" | jq .
 echo ""
 
-echo "4.9 测试未登录用户创建帖子（应该失败）..."
+echo "4.11 测试未登录用户创建帖子（应该失败）..."
 curl -s -X POST $SERVER_URL/api/create_post \
   -H "Content-Type: application/json" \
   -d '{"title":"未登录帖子","content":"这个帖子不应该创建成功"}' | jq .
@@ -441,19 +481,32 @@ curl -s -X GET $SERVER_URL/api/get_post_replies \
   -d '{"post_id":"999"}' | jq .
 echo ""
 
+echo "7.7 测试无效帖子ID格式..."
+curl -s -X GET "$SERVER_URL/api/post/invalid_id" | jq .
+echo ""
+
+echo "7.8 测试获取不存在的帖子详情..."
+curl -s -X GET "$SERVER_URL/api/post/999" | jq .
+echo ""
+
 # ========================================
 # 测试总结
 # ========================================
 echo "=========================================="
 echo "8. 测试总结"
 echo "=========================================="
-echo "✅ 用户管理API测试完成"
-echo "✅ 即时通讯API测试完成（包括联系人列表）"
-echo "✅ 群组管理API测试完成"
-echo "✅ BBS论坛API测试完成（包括帖子回复）"
+echo "✅ 用户管理API测试完成（包括新的用户信息接口）"
+echo "✅ 即时通讯API测试完成（包括联系人列表和用户名显示）"
+echo "✅ 群组管理API测试完成（包括群组消息中的用户名显示）"
+echo "✅ BBS论坛API测试完成（包括帖子详情接口和用户名显示）"
 echo "✅ 文件管理API测试完成"
 echo "✅ 用户登出测试完成"
-echo "✅ 错误处理测试完成"
+echo "✅ 错误处理测试完成（包括新接口的错误处理）"
+echo ""
+echo "新增接口测试："
+echo "✅ GET /api/user/profile - 获取用户信息"
+echo "✅ GET /api/post/{id} - 获取帖子详情"
+echo "✅ 所有接口现在返回包含用户名字段的数据"
 echo ""
 echo "所有API接口测试完成！"
 echo "如果看到任何错误，请检查服务器状态和网络连接。"

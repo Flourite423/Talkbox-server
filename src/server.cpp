@@ -126,6 +126,20 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
         return user_manager->login_user(body, client_fd);
     } else if (path == "/api/logout" && method == "POST") {
         return user_manager->logout_user(token, client_fd);
+    } else if (path == "/api/user/profile" && method == "GET") {
+        return user_manager->get_user_profile(token);
+    } else if (path.find("/api/post/") == 0 && method == "GET") {
+        // 解析帖子ID
+        std::string post_id_str = path.substr(10); // 移除 "/api/post/" 部分
+        if (!post_id_str.empty()) {
+            try {
+                int post_id = std::stoi(post_id_str);
+                return forum_service->get_post_detail(post_id);
+            } catch (const std::exception&) {
+                return create_json_response("error", "无效的帖子ID");
+            }
+        }
+        return create_json_response("error", "缺少帖子ID");
     } else if (path == "/api/send_message" && method == "POST") {
         return message_service->send_message(body, token);
     } else if (path == "/api/get_messages" && method == "GET") {

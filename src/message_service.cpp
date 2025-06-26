@@ -81,8 +81,15 @@ std::string MessageService::get_messages(const std::string& token) {
             json_array << ",";
         }
         
+        // 获取发送者用户名
+        std::string sender_username = db->get_username_by_id(messages[i].sender_id);
+        if (!sender_username.empty()) {
+            messages[i].sender_username = sender_username;
+        }
+        
         json_array << "{\"message_id\":" << messages[i].message_id
                   << ",\"sender_id\":" << messages[i].sender_id
+                  << ",\"sender_username\":\"" << messages[i].sender_username << "\""
                   << ",\"receiver_id\":" << messages[i].receiver_id
                   << ",\"group_id\":" << messages[i].group_id
                   << ",\"content\":\"" << messages[i].content << "\""
@@ -264,8 +271,15 @@ std::string MessageService::get_group_messages(const std::string& body, const st
             json_array << ",";
         }
         
+        // 获取发送者用户名
+        std::string sender_username = db->get_username_by_id(messages[i].sender_id);
+        if (!sender_username.empty()) {
+            messages[i].sender_username = sender_username;
+        }
+        
         json_array << "{\"message_id\":" << messages[i].message_id
                   << ",\"sender_id\":" << messages[i].sender_id
+                  << ",\"sender_username\":\"" << messages[i].sender_username << "\""
                   << ",\"group_id\":" << messages[i].group_id
                   << ",\"content\":\"" << messages[i].content << "\""
                   << ",\"type\":\"" << messages[i].type << "\""

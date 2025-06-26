@@ -521,3 +521,50 @@ bool Database::is_user_in_group(int user_id, int group_id) {
     
     return exists;
 }
+
+// 新增：通过用户ID获取用户名
+std::string Database::get_username_by_id(int user_id) {
+    std::string sql = "SELECT username FROM users WHERE user_id = ?;";
+    
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        return "";
+    }
+    
+    sqlite3_bind_int(stmt, 1, user_id);
+    
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        std::string username = (char*)sqlite3_column_text(stmt, 0);
+        sqlite3_finalize(stmt);
+        return username;
+    }
+    
+    sqlite3_finalize(stmt);
+    return "";
+}
+
+// 新增：通过帖子ID获取帖子详情
+Post Database::get_post_by_id(int post_id) {
+    Post post;
+    std::string sql = "SELECT p.post_id, p.user_id, u.username, p.title, p.content, p.timestamp "
+                     "FROM posts p JOIN users u ON p.user_id = u.user_id WHERE p.post_id = ?;";
+    
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        return post;
+    }
+    
+    sqlite3_bind_int(stmt, 1, post_id);
+    
+    if (sqlite3_step(stmt) == SQLITE_ROW) {
+        post.post_id = sqlite3_column_int(stmt, 0);
+        post.user_id = sqlite3_column_int(stmt, 1);
+        post.username = (char*)sqlite3_column_text(stmt, 2);
+        post.title = (char*)sqlite3_column_text(stmt, 3);
+        post.content = (char*)sqlite3_column_text(stmt, 4);
+        post.timestamp = (char*)sqlite3_column_text(stmt, 5);
+    }
+    
+    sqlite3_finalize(stmt);
+    return post;
+}

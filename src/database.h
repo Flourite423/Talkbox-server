@@ -15,6 +15,10 @@ public:
     bool user_exists(const std::string& username);
     bool verify_user(const std::string& username, const std::string& password, User& user);
     
+    // 新增：获取用户信息方法
+    std::string get_username_by_id(int user_id);
+    Post get_post_by_id(int post_id);
+    
     bool save_message(const Message& message);
     std::vector<Message> get_messages(int user_id);
     std::vector<Message> get_group_messages(int group_id);

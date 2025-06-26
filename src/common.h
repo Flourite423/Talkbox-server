@@ -25,6 +25,7 @@ struct Group {
 struct Message {
     int message_id;
     int sender_id;
+    std::string sender_username;
     int receiver_id;  // 私聊时使用
     int group_id;     // 群聊时使用，-1表示私聊
     std::string content;
@@ -35,6 +36,7 @@ struct Message {
 struct Post {
     int post_id;
     int user_id;
+    std::string username;
     std::string title;
     std::string content;
     std::string timestamp;
@@ -45,6 +47,7 @@ struct Reply {
     int reply_id;
     int post_id;
     int user_id;
+    std::string username;
     std::string content;
     std::string timestamp;
 };

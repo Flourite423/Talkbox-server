@@ -21,6 +21,9 @@ public:
     std::string reply_post(const std::string& body, const std::string& token);
     std::string get_post_replies(const std::string& body);
     
+    // 新增：获取单个帖子详情
+    std::string get_post_detail(int post_id);
+    
 private:
     Database* db;
     UserManager* user_manager;
