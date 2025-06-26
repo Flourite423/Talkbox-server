@@ -184,6 +184,8 @@ Authorization: Bearer <token>
 
 **功能**: 获取所有可以私聊的用户列表（除了自己），包含在线状态
 
+**说明**: 返回系统中除自己外的所有用户，无论是否有过聊天记录
+
 **请求头**:
 ```
 Authorization: Bearer <token>
@@ -209,6 +211,8 @@ Authorization: Bearer <token>
     ]
 }
 ```
+
+**注意**: `online`字段当前为静态值，实际的在线状态更新逻辑待完善。
 
 ## BBS论坛 API
 
@@ -296,7 +300,12 @@ Authorization: Bearer <token>
 
 **功能**: 获取指定帖子的所有回复
 
-**请求参数**:
+**请求头**:
+```
+Content-Type: application/json
+```
+
+**请求参数** (JSON请求体):
 ```json
 {
     "post_id": "帖子ID"
@@ -332,7 +341,7 @@ Authorization: Bearer <token>
 
 **接口**: `POST /api/create_group`
 
-**功能**: 创建新的聊天群组
+**功能**: 创建新的聊天群组（创建者自动加入群组）
 
 **请求头**:
 ```
@@ -411,7 +420,11 @@ Authorization: Bearer <token>
 
 **接口**: `GET /api/get_groups`
 
-**功能**: 获取所有群组列表
+**功能**: 获取群组列表
+
+**说明**: 
+- 如果提供token，返回该用户加入的群组列表，包含`is_member`字段
+- 如果不提供token，返回所有群组列表，不包含`is_member`字段
 
 **请求头** (可选):
 ```
@@ -446,9 +459,10 @@ Authorization: Bearer <token>
 **请求头**:
 ```
 Authorization: Bearer <token>
+Content-Type: application/json
 ```
 
-**请求参数**:
+**请求参数** (JSON请求体):
 ```json
 {
     "group_id": "群组ID"
@@ -522,6 +536,20 @@ Authorization: Bearer <token>
 - `success`: 操作成功
 - `error`: 操作失败，具体错误信息在 `data` 字段中
 
+### 常见错误信息
+
+- `"无效的token"`: token验证失败或已过期
+- `"用户名已存在"`: 注册时用户名重复
+- `"用户名或密码错误"`: 登录时凭据错误
+- `"用户名和密码不能为空"`: 注册或登录时缺少必要参数
+- `"群组ID不能为空"`: 群组操作时缺少群组ID
+- `"您已经是该群组的成员"`: 重复加入群组
+- `"您不是该群组的成员"`: 非群组成员尝试群组操作
+- `"文件不存在"`: 下载不存在的文件
+- `"必须提供接收者ID或群组ID"`: 发送消息时参数错误
+- `"无效的API路径"`: 请求的API路径不存在
+- `"不支持的HTTP方法"`: 使用了不支持的HTTP方法
+
 ## 注意事项
 
 1. 用户必须先登录获取token才能使用大部分功能
@@ -531,3 +559,8 @@ Authorization: Bearer <token>
 5. 文件上传时需要将文件内容编码为字符串形式
 6. 服务器默认在 8080 端口启动，可通过命令行参数修改
 7. 上传的文件存储在服务器的 `uploads/` 目录下
+8. 群组创建者会自动加入群组，无需手动加入
+9. 联系人列表返回所有用户（除自己），无论是否有聊天记录
+10. 部分GET接口使用JSON请求体传递参数（如`get_post_replies`、`get_group_messages`）
+11. 重复加入已加入的群组会返回错误信息
+12. 只有群组成员才能发送群组消息和获取群组消息历史
