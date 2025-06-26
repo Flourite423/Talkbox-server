@@ -296,6 +296,31 @@ bool Database::reply_post(int post_id, int user_id, const std::string& content, 
     return rc == SQLITE_DONE;
 }
 
+std::vector<Reply> Database::get_post_replies(int post_id) {
+    std::vector<Reply> replies;
+    std::string sql = "SELECT reply_id, post_id, user_id, content, timestamp FROM replies WHERE post_id = ? ORDER BY timestamp;";
+    
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        return replies;
+    }
+    
+    sqlite3_bind_int(stmt, 1, post_id);
+    
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        Reply reply;
+        reply.reply_id = sqlite3_column_int(stmt, 0);
+        reply.post_id = sqlite3_column_int(stmt, 1);
+        reply.user_id = sqlite3_column_int(stmt, 2);
+        reply.content = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
+        reply.timestamp = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
+        replies.push_back(reply);
+    }
+    
+    sqlite3_finalize(stmt);
+    return replies;
+}
+
 std::vector<Message> Database::get_group_messages(int group_id) {
     std::vector<Message> messages;
     std::string sql = "SELECT message_id, sender_id, receiver_id, group_id, content, type, timestamp FROM messages WHERE group_id = ? ORDER BY timestamp;";

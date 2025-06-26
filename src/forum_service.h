@@ -19,6 +19,7 @@ public:
     std::string create_post(const std::string& body, const std::string& token);
     std::string get_posts(const std::string& body);
     std::string reply_post(const std::string& body, const std::string& token);
+    std::string get_post_replies(const std::string& body);
     
 private:
     Database* db;

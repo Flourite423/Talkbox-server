@@ -243,7 +243,13 @@ curl -s -X POST $SERVER_URL/api/reply_post \
   -d "{\"post_id\":\"$POST_ID\",\"content\":\"这个系统很不错！\"}" | jq .
 echo ""
 
-echo "4.6 测试未登录用户创建帖子（应该失败）..."
+echo "4.6 获取第一个帖子的回复列表..."
+curl -s -X GET $SERVER_URL/api/get_post_replies \
+  -H "Content-Type: application/json" \
+  -d "{\"post_id\":\"$POST_ID\"}" | jq .
+echo ""
+
+echo "4.7 测试未登录用户创建帖子（应该失败）..."
 curl -s -X POST $SERVER_URL/api/create_post \
   -H "Content-Type: application/json" \
   -d '{"title":"未登录帖子","content":"这个帖子不应该创建成功"}' | jq .

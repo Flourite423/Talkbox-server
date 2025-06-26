@@ -97,3 +97,32 @@ std::string ForumService::reply_post(const std::string& body, const std::string&
         return create_json_response("error", "回帖失败");
     }
 }
+
+std::string ForumService::get_post_replies(const std::string& body) {
+    std::string post_id_str = parse_json_value(body, "post_id");
+    
+    if (post_id_str.empty()) {
+        return create_json_response("error", "帖子ID不能为空");
+    }
+    
+    int post_id = std::stoi(post_id_str);
+    std::vector<Reply> replies = db->get_post_replies(post_id);
+    
+    std::ostringstream json_array;
+    json_array << "[";
+    
+    for (size_t i = 0; i < replies.size(); ++i) {
+        if (i > 0) json_array << ",";
+        json_array << "{"
+                   << "\"reply_id\":" << replies[i].reply_id << ","
+                   << "\"post_id\":" << replies[i].post_id << ","
+                   << "\"user_id\":" << replies[i].user_id << ","
+                   << "\"content\":\"" << replies[i].content << "\","
+                   << "\"timestamp\":\"" << replies[i].timestamp << "\""
+                   << "}";
+    }
+    
+    json_array << "]";
+    
+    return create_json_response("success", json_array.str());
+}

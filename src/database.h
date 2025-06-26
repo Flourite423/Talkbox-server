@@ -30,6 +30,7 @@ public:
     bool create_post(const Post& post);
     std::vector<Post> get_posts();
     bool reply_post(int post_id, int user_id, const std::string& content, const std::string& timestamp);
+    std::vector<Reply> get_post_replies(int post_id);
     
 private:
     sqlite3* db;

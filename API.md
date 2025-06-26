@@ -258,9 +258,45 @@ Authorization: Bearer <token>
 }
 ```
 
+### 9. 获取帖子回复
+
+**接口**: `GET /api/get_post_replies`
+
+**功能**: 获取指定帖子的所有回复
+
+**请求参数**:
+```json
+{
+    "post_id": "帖子ID"
+}
+```
+
+**响应示例**:
+```json
+{
+    "status": "success",
+    "data": [
+        {
+            "reply_id": 1,
+            "post_id": 1,
+            "user_id": 2,
+            "content": "这是第一个回复",
+            "timestamp": "Wed Jun 26 16:30:00 2025"
+        },
+        {
+            "reply_id": 2,
+            "post_id": 1,
+            "user_id": 3,
+            "content": "这是第二个回复",
+            "timestamp": "Wed Jun 26 16:35:00 2025"
+        }
+    ]
+}
+```
+
 ## 群组管理 API
 
-### 9. 创建群组
+### 10. 创建群组
 
 **接口**: `POST /api/create_group`
 
@@ -287,7 +323,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 10. 加入群组
+### 11. 加入群组
 
 **接口**: `POST /api/join_group`
 
@@ -313,7 +349,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 11. 退出群组
+### 12. 退出群组
 
 **接口**: `POST /api/leave_group`
 
@@ -339,7 +375,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 12. 获取群组列表
+### 13. 获取群组列表
 
 **接口**: `GET /api/get_groups`
 
@@ -369,7 +405,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 13. 获取群组消息
+### 14. 获取群组消息
 
 **接口**: `GET /api/get_group_messages`
 
@@ -406,7 +442,7 @@ Authorization: Bearer <token>
 
 ## 文件管理 API
 
-### 14. 上传文件
+### 15. 上传文件
 
 **接口**: `POST /api/upload_file`
 
@@ -433,7 +469,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 15. 下载文件
+### 16. 下载文件
 
 **接口**: `GET /api/download_file?filename=文件名`
 

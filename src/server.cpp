@@ -136,6 +136,8 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
         return forum_service->get_posts(body);
     } else if (path == "/api/reply_post" && method == "POST") {
         return forum_service->reply_post(body, token);
+    } else if (path == "/api/get_post_replies" && method == "GET") {
+        return forum_service->get_post_replies(body);
     } else if (path == "/api/upload_file" && method == "POST") {
         return file_manager->upload_file(body, token);
     } else if (path.find("/api/download_file") == 0 && method == "GET") {

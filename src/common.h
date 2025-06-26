@@ -41,6 +41,14 @@ struct Post {
     std::vector<std::string> replies;
 };
 
+struct Reply {
+    int reply_id;
+    int post_id;
+    int user_id;
+    std::string content;
+    std::string timestamp;
+};
+
 // 共享的工具函数
 std::string get_current_timestamp();
 std::string parse_json_value(const std::string& json, const std::string& key);
