@@ -178,9 +178,41 @@ Authorization: Bearer <token>
 }
 ```
 
+### 6. 获取联系人列表
+
+**接口**: `GET /api/get_contacts`
+
+**功能**: 获取所有可以私聊的用户列表（除了自己），包含在线状态
+
+**请求头**:
+```
+Authorization: Bearer <token>
+```
+
+**请求参数**: 无需参数
+
+**响应示例**:
+```json
+{
+    "status": "success",
+    "data": [
+        {
+            "user_id": 2,
+            "username": "bob",
+            "online": false
+        },
+        {
+            "user_id": 3,
+            "username": "charlie",
+            "online": true
+        }
+    ]
+}
+```
+
 ## BBS论坛 API
 
-### 6. 创建帖子
+### 7. 创建帖子
 
 **接口**: `POST /api/create_post`
 
@@ -207,7 +239,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 7. 获取帖子列表
+### 8. 获取帖子列表
 
 **接口**: `GET /api/get_posts`
 
@@ -231,7 +263,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 8. 回复帖子
+### 9. 回复帖子
 
 **接口**: `POST /api/reply_post`
 
@@ -258,7 +290,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 9. 获取帖子回复
+### 10. 获取帖子回复
 
 **接口**: `GET /api/get_post_replies`
 
@@ -296,7 +328,7 @@ Authorization: Bearer <token>
 
 ## 群组管理 API
 
-### 10. 创建群组
+### 11. 创建群组
 
 **接口**: `POST /api/create_group`
 
@@ -323,7 +355,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 11. 加入群组
+### 12. 加入群组
 
 **接口**: `POST /api/join_group`
 
@@ -349,7 +381,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 12. 退出群组
+### 13. 退出群组
 
 **接口**: `POST /api/leave_group`
 
@@ -375,7 +407,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 13. 获取群组列表
+### 14. 获取群组列表
 
 **接口**: `GET /api/get_groups`
 
@@ -405,7 +437,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 14. 获取群组消息
+### 15. 获取群组消息
 
 **接口**: `GET /api/get_group_messages`
 
@@ -442,7 +474,7 @@ Authorization: Bearer <token>
 
 ## 文件管理 API
 
-### 15. 上传文件
+### 16. 上传文件
 
 **接口**: `POST /api/upload_file`
 
@@ -469,7 +501,7 @@ Authorization: Bearer <token>
 }
 ```
 
-### 16. 下载文件
+### 17. 下载文件
 
 **接口**: `GET /api/download_file?filename=文件名`
 

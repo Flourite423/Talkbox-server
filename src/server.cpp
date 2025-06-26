@@ -130,6 +130,8 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
         return message_service->send_message(body, token);
     } else if (path == "/api/get_messages" && method == "GET") {
         return message_service->get_messages(token);
+    } else if (path == "/api/get_contacts" && method == "GET") {
+        return message_service->get_contacts(token);
     } else if (path == "/api/create_post" && method == "POST") {
         return forum_service->create_post(body, token);
     } else if (path == "/api/get_posts" && method == "GET") {

@@ -18,6 +18,7 @@ public:
     bool save_message(const Message& message);
     std::vector<Message> get_messages(int user_id);
     std::vector<Message> get_group_messages(int group_id);
+    std::vector<User> get_user_contacts(int user_id);
     
     // 群组管理
     bool create_group(const Group& group);

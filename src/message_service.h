@@ -18,6 +18,7 @@ public:
     // 消息处理API
     std::string send_message(const std::string& body, const std::string& token);
     std::string get_messages(const std::string& token);
+    std::string get_contacts(const std::string& token);
     
     // 群组消息API
     std::string create_group(const std::string& body, const std::string& token);

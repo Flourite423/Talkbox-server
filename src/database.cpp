@@ -23,7 +23,8 @@ bool Database::init_database() {
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
+            password TEXT NOT NULL,
+            online INTEGER DEFAULT 0
         );
     )";
     
@@ -234,6 +235,40 @@ std::vector<Message> Database::get_messages(int user_id) {
     return messages;
 }
 
+std::vector<User> Database::get_user_contacts(int user_id) {
+    std::vector<User> contacts;
+    
+    // 获取所有用户（除了当前用户自己）
+    std::string sql = R"(
+        SELECT user_id, username, online
+        FROM users
+        WHERE user_id != ?
+        ORDER BY username;
+    )";
+    
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        return contacts;
+    }
+    
+    sqlite3_bind_int(stmt, 1, user_id);
+    
+    while (sqlite3_step(stmt) == SQLITE_ROW) {
+        User contact;
+        contact.user_id = sqlite3_column_int(stmt, 0);
+        contact.username = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        contact.online = sqlite3_column_int(stmt, 2) ? true : false;
+        contact.password = ""; // 不返回密码信息
+        contact.socket_fd = -1;
+        contact.token = "";
+        
+        contacts.push_back(contact);
+    }
+    
+    sqlite3_finalize(stmt);
+    return contacts;
+}
+
 bool Database::create_post(const Post& post) {
     std::string sql = "INSERT INTO posts (user_id, title, content, timestamp) VALUES (?, ?, ?, ?);";
     
@@ -371,7 +406,13 @@ bool Database::create_group(const Group& group) {
     int rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
     
-    return rc == SQLITE_DONE;
+    if (rc == SQLITE_DONE) {
+        // 自动让创建者加入群组
+        int group_id = sqlite3_last_insert_rowid(db);
+        return join_group(group.creator_id, group_id);
+    }
+    
+    return false;
 }
 
 std::vector<Group> Database::get_all_groups() {

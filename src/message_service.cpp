@@ -95,6 +95,33 @@ std::string MessageService::get_messages(const std::string& token) {
     return create_json_response("success", json_array.str());
 }
 
+std::string MessageService::get_contacts(const std::string& token) {
+    int user_id = user_manager->get_user_id_by_token(token);
+    if (user_id == -1) {
+        return create_json_response("error", "无效的token");
+    }
+    
+    std::vector<User> contacts = db->get_user_contacts(user_id);
+    
+    std::ostringstream json_array;
+    json_array << "[";
+    
+    for (size_t i = 0; i < contacts.size(); ++i) {
+        if (i > 0) {
+            json_array << ",";
+        }
+        
+        json_array << "{\"user_id\":" << contacts[i].user_id
+                  << ",\"username\":\"" << contacts[i].username << "\""
+                  << ",\"online\":" << (contacts[i].online ? "true" : "false")
+                  << "}";
+    }
+    
+    json_array << "]";
+    
+    return create_json_response("success", json_array.str());
+}
+
 std::string MessageService::create_group(const std::string& body, const std::string& token) {
     int user_id = user_manager->get_user_id_by_token(token);
     if (user_id == -1) {
