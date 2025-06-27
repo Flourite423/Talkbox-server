@@ -53,7 +53,7 @@ sudo pacman -S base-devel sqlite
 
 1. **克隆项目**
 ```bash
-git clone <repository-url>
+git clone https://github.com/Flourite423/Talkbox-server.git
 cd Talkbox-server
 ```
 
