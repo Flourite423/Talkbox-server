@@ -43,8 +43,8 @@ std::string ForumService::create_post(const std::string& body) {
     }
 }
 
-std::string ForumService::get_posts(const std::string& body) {
-    (void)body;  // 参数未使用，获取所有帖子时不需要特定参数
+std::string ForumService::get_posts(const std::string& query_string) {
+    (void)query_string;  // 参数未使用，获取所有帖子时不需要特定参数
     std::vector<Post> posts = db->get_posts();
     
     std::ostringstream json_array;
@@ -116,8 +116,21 @@ std::string ForumService::reply_post(const std::string& body) {
     }
 }
 
-std::string ForumService::get_post_replies(const std::string& body) {
-    std::string post_id_str = parse_json_value(body, "post_id");
+std::string ForumService::get_post_replies(const std::string& query_string) {
+    // 解析查询参数中的post_id
+    std::string post_id_str = "";
+    if (!query_string.empty()) {
+        std::string search_key = "post_id=";
+        size_t pos = query_string.find(search_key);
+        if (pos != std::string::npos) {
+            pos += search_key.length();
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) {
+                end = query_string.length();
+            }
+            post_id_str = query_string.substr(pos, end - pos);
+        }
+    }
     
     if (post_id_str.empty()) {
         return create_json_response("error", "帖子ID不能为空");

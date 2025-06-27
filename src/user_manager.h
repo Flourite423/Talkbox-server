@@ -21,7 +21,7 @@ public:
     std::string logout_user(const std::string& body, int client_fd);
     
     // 新增：获取用户信息API
-    std::string get_user_profile(const std::string& body);
+    std::string get_user_profile(const std::string& query_string);
     std::string get_username_by_id(int user_id);
     
     // 工具函数

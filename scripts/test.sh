@@ -71,22 +71,16 @@ curl -s -X POST $SERVER_URL/api/login \
   -d '{"username":"alice","password":"wrongpassword"}' | jq .
 echo ""
 
-echo "1.9 测试获取Alice用户信息..."
-curl -s -X GET $SERVER_URL/api/user/profile \
-  -H "Content-Type: application/json" \
-  -d '{"username":"alice"}' | jq .
+echo "1.9 测试获取Alice用户信息（使用查询参数）..."
+curl -s -X GET "$SERVER_URL/api/user/profile?username=alice" | jq .
 echo ""
 
-echo "1.10 测试获取Bob用户信息..."
-curl -s -X GET $SERVER_URL/api/user/profile \
-  -H "Content-Type: application/json" \
-  -d '{"username":"bob"}' | jq .
+echo "1.10 测试获取Bob用户信息（使用查询参数）..."
+curl -s -X GET "$SERVER_URL/api/user/profile?username=bob" | jq .
 echo ""
 
 echo "1.11 测试无效用户名获取用户信息（应该失败）..."
-curl -s -X GET $SERVER_URL/api/user/profile \
-  -H "Content-Type: application/json" \
-  -d '{"username":"nonexistent"}' | jq .
+curl -s -X GET "$SERVER_URL/api/user/profile?username=nonexistent" | jq .
 echo ""
 
 # ========================================
@@ -126,28 +120,20 @@ curl -s -X POST $SERVER_URL/api/send_message \
   -d '{"username":"invaliduser","receiver_id":"1","content":"这条消息不应该发送成功","type":"text"}' | jq .
 echo ""
 
-echo "2.6 Alice获取所有消息..."
-curl -s -X GET $SERVER_URL/api/get_messages \
-  -H "Content-Type: application/json" \
-  -d '{"username":"alice"}' | jq .
+echo "2.6 Alice获取所有消息（使用查询参数）..."
+curl -s -X GET "$SERVER_URL/api/get_messages?username=alice" | jq .
 echo ""
 
-echo "2.7 Bob获取所有消息..."
-curl -s -X GET $SERVER_URL/api/get_messages \
-  -H "Content-Type: application/json" \
-  -d '{"username":"bob"}' | jq .
+echo "2.7 Bob获取所有消息（使用查询参数）..."
+curl -s -X GET "$SERVER_URL/api/get_messages?username=bob" | jq .
 echo ""
 
-echo "2.8 Alice获取联系人列表..."
-curl -s -X GET $SERVER_URL/api/get_contacts \
-  -H "Content-Type: application/json" \
-  -d '{"username":"alice"}' | jq .
+echo "2.8 Alice获取联系人列表（使用查询参数）..."
+curl -s -X GET "$SERVER_URL/api/get_contacts?username=alice" | jq .
 echo ""
 
-echo "2.9 Bob获取联系人列表..."
-curl -s -X GET $SERVER_URL/api/get_contacts \
-  -H "Content-Type: application/json" \
-  -d '{"username":"bob"}' | jq .
+echo "2.9 Bob获取联系人列表（使用查询参数）..."
+curl -s -X GET "$SERVER_URL/api/get_contacts?username=bob" | jq .
 echo ""
 
 # ========================================
@@ -169,19 +155,15 @@ curl -s -X POST $SERVER_URL/api/create_group \
   -d '{"username":"alice","group_name":"生活分享群","description":"分享生活趣事"}' | jq .
 echo ""
 
-echo "3.3 获取群组列表（未提供用户名）..."
-GROUPS_RESPONSE=$(curl -s -X GET $SERVER_URL/api/get_groups \
-  -H "Content-Type: application/json" \
-  -d '{}')
+echo "3.3 获取群组列表（不提供用户名，使用查询参数）..."
+GROUPS_RESPONSE=$(curl -s -X GET "$SERVER_URL/api/get_groups")
 echo $GROUPS_RESPONSE | jq .
 GROUP_ID=$(echo $GROUPS_RESPONSE | jq -r '.data[0].group_id // empty')
 echo "第一个群组ID: $GROUP_ID"
 echo ""
 
-echo "3.4 获取群组列表（Alice已登录）..."
-curl -s -X GET $SERVER_URL/api/get_groups \
-  -H "Content-Type: application/json" \
-  -d '{"username":"alice"}' | jq .
+echo "3.4 获取群组列表（Alice已登录，使用查询参数）..."
+curl -s -X GET "$SERVER_URL/api/get_groups?username=alice" | jq .
 echo ""
 
 echo "3.5 Bob加入第一个群组..."
@@ -220,10 +202,8 @@ curl -s -X POST $SERVER_URL/api/send_message \
   -d "{\"username\":\"charlie\",\"group_id\":\"$GROUP_ID\",\"content\":\"大家好，我是Charlie，请多指教！\",\"type\":\"text\"}" | jq .
 echo ""
 
-echo "3.11 获取群组消息历史..."
-curl -s -X GET $SERVER_URL/api/get_group_messages \
-  -H "Content-Type: application/json" \
-  -d "{\"username\":\"alice\",\"group_id\":\"$GROUP_ID\"}" | jq .
+echo "3.11 获取群组消息历史（使用查询参数）..."
+curl -s -X GET "$SERVER_URL/api/get_group_messages?username=alice&group_id=$GROUP_ID" | jq .
 echo ""
 
 echo "3.12 Charlie退出群组..."
@@ -233,9 +213,7 @@ curl -s -X POST $SERVER_URL/api/leave_group \
 echo ""
 
 echo "3.13 Charlie退出群组后尝试获取群组消息（应该失败）..."
-curl -s -X GET $SERVER_URL/api/get_group_messages \
-  -H "Content-Type: application/json" \
-  -d "{\"username\":\"charlie\",\"group_id\":\"$GROUP_ID\"}" | jq .
+curl -s -X GET "$SERVER_URL/api/get_group_messages?username=charlie&group_id=$GROUP_ID" | jq .
 echo ""
 
 echo "3.14 Charlie退出群组后尝试发送群组消息（应该失败）..."
@@ -276,10 +254,8 @@ curl -s -X POST $SERVER_URL/api/create_post \
   -d '{"username":"charlie","title":"新手求助","content":"刚开始学习编程，有什么好的学习路径推荐吗？"}' | jq .
 echo ""
 
-echo "4.4 获取帖子列表..."
-POSTS_RESPONSE=$(curl -s -X GET $SERVER_URL/api/get_posts \
-  -H "Content-Type: application/json" \
-  -d '{}')
+echo "4.4 获取帖子列表（使用查询参数）..."
+POSTS_RESPONSE=$(curl -s -X GET "$SERVER_URL/api/get_posts")
 echo $POSTS_RESPONSE | jq .
 POST_ID=$(echo $POSTS_RESPONSE | jq -r '.data[0].post_id // empty')
 echo "第一个帖子ID: $POST_ID"
@@ -311,10 +287,8 @@ curl -s -X POST $SERVER_URL/api/reply_post \
   -d "{\"username\":\"charlie\",\"post_id\":\"$POST_ID\",\"content\":\"同意楼上，期待更多功能！\"}" | jq .
 echo ""
 
-echo "4.10 获取第一个帖子的回复列表..."
-curl -s -X GET $SERVER_URL/api/get_post_replies \
-  -H "Content-Type: application/json" \
-  -d "{\"post_id\":\"$POST_ID\"}" | jq .
+echo "4.10 获取第一个帖子的回复列表（使用查询参数）..."
+curl -s -X GET "$SERVER_URL/api/get_post_replies?post_id=$POST_ID" | jq .
 echo ""
 
 echo "4.11 测试未登录用户创建帖子（应该失败）..."
@@ -428,16 +402,12 @@ curl -s -X POST $SERVER_URL/api/register \
   -d '{}' | jq .
 echo ""
 
-echo "7.5 测试无效用户名..."
-curl -s -X GET $SERVER_URL/api/get_messages \
-  -H "Content-Type: application/json" \
-  -d '{"username":"invalid_username"}' | jq .
+echo "7.5 测试无效用户名（使用查询参数）..."
+curl -s -X GET "$SERVER_URL/api/get_messages?username=invalid_username" | jq .
 echo ""
 
-echo "7.6 测试获取不存在帖子的回复..."
-curl -s -X GET $SERVER_URL/api/get_post_replies \
-  -H "Content-Type: application/json" \
-  -d '{"post_id":"999"}' | jq .
+echo "7.6 测试获取不存在帖子的回复（使用查询参数）..."
+curl -s -X GET "$SERVER_URL/api/get_post_replies?post_id=999" | jq .
 echo ""
 
 echo "7.7 测试无效帖子ID格式..."
@@ -454,25 +424,4 @@ curl -s -X POST $SERVER_URL/api/send_message \
   -d '{"receiver_id":"1","content":"缺少用户名","type":"text"}' | jq .
 echo ""
 
-# ========================================
-# 测试总结
-# ========================================
-echo "=========================================="
-echo "8. 测试总结"
-echo "=========================================="
-echo "✅ 用户管理API测试完成（基于用户名认证）"
-echo "✅ 即时通讯API测试完成（基于用户名认证）"
-echo "✅ 群组管理API测试完成（基于用户名认证）"
-echo "✅ BBS论坛API测试完成（基于用户名认证）"
-echo "✅ 文件管理API测试完成（基于用户名认证）"
-echo "✅ 用户登出测试完成（基于用户名认证）"
-echo "✅ 错误处理测试完成（包括用户名验证错误）"
-echo ""
-echo "认证方式变更："
-echo "✅ 所有需要认证的接口现在使用用户名而不是token"
-echo "✅ 用户名必须在请求参数中提供"
-echo "✅ 系统验证用户名是否对应在线用户"
-echo ""
-echo "所有API接口测试完成！"
-echo "如果看到任何错误，请检查服务器状态和网络连接。"
-echo "=========================================="
+

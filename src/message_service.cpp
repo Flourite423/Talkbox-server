@@ -70,8 +70,22 @@ std::string MessageService::send_message(const std::string& body) {
     }
 }
 
-std::string MessageService::get_messages(const std::string& body) {
-    std::string username = parse_json_value(body, "username");
+std::string MessageService::get_messages(const std::string& query_string) {
+    // 解析查询参数中的username
+    std::string username = "";
+    if (!query_string.empty()) {
+        std::string search_key = "username=";
+        size_t pos = query_string.find(search_key);
+        if (pos != std::string::npos) {
+            pos += search_key.length();
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) {
+                end = query_string.length();
+            }
+            username = query_string.substr(pos, end - pos);
+        }
+    }
+    
     if (username.empty()) {
         return create_json_response("error", "用户名不能为空");
     }
@@ -112,8 +126,22 @@ std::string MessageService::get_messages(const std::string& body) {
     return create_json_response("success", json_array.str());
 }
 
-std::string MessageService::get_contacts(const std::string& body) {
-    std::string username = parse_json_value(body, "username");
+std::string MessageService::get_contacts(const std::string& query_string) {
+    // 解析查询参数中的username
+    std::string username = "";
+    if (!query_string.empty()) {
+        std::string search_key = "username=";
+        size_t pos = query_string.find(search_key);
+        if (pos != std::string::npos) {
+            pos += search_key.length();
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) {
+                end = query_string.length();
+            }
+            username = query_string.substr(pos, end - pos);
+        }
+    }
+    
     if (username.empty()) {
         return create_json_response("error", "用户名不能为空");
     }
@@ -233,11 +261,25 @@ std::string MessageService::leave_group(const std::string& body) {
     }
 }
 
-std::string MessageService::get_groups(const std::string& body) {
+std::string MessageService::get_groups(const std::string& query_string) {
     std::vector<Group> groups;
     int user_id = -1;
     
-    std::string username = parse_json_value(body, "username");
+    // 解析查询参数中的username
+    std::string username = "";
+    if (!query_string.empty()) {
+        std::string search_key = "username=";
+        size_t pos = query_string.find(search_key);
+        if (pos != std::string::npos) {
+            pos += search_key.length();
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) {
+                end = query_string.length();
+            }
+            username = query_string.substr(pos, end - pos);
+        }
+    }
+    
     if (!username.empty()) {
         user_id = user_manager->get_user_id_by_username(username);
     }
@@ -275,8 +317,37 @@ std::string MessageService::get_groups(const std::string& body) {
     return create_json_response("success", json_array.str());
 }
 
-std::string MessageService::get_group_messages(const std::string& body) {
-    std::string username = parse_json_value(body, "username");
+std::string MessageService::get_group_messages(const std::string& query_string) {
+    // 解析查询参数中的username和group_id
+    std::string username = "";
+    std::string group_id_str = "";
+    
+    if (!query_string.empty()) {
+        // 解析username
+        std::string search_key = "username=";
+        size_t pos = query_string.find(search_key);
+        if (pos != std::string::npos) {
+            pos += search_key.length();
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) {
+                end = query_string.length();
+            }
+            username = query_string.substr(pos, end - pos);
+        }
+        
+        // 解析group_id
+        search_key = "group_id=";
+        pos = query_string.find(search_key);
+        if (pos != std::string::npos) {
+            pos += search_key.length();
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) {
+                end = query_string.length();
+            }
+            group_id_str = query_string.substr(pos, end - pos);
+        }
+    }
+    
     if (username.empty()) {
         return create_json_response("error", "用户名不能为空");
     }
@@ -286,7 +357,6 @@ std::string MessageService::get_group_messages(const std::string& body) {
         return create_json_response("error", "无效的用户名");
     }
     
-    std::string group_id_str = parse_json_value(body, "group_id");
     if (group_id_str.empty()) {
         return create_json_response("error", "群组ID不能为空");
     }

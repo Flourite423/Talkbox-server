@@ -17,9 +17,9 @@ public:
     
     // 论坛API
     std::string create_post(const std::string& body);
-    std::string get_posts(const std::string& body);
+    std::string get_posts(const std::string& query_string);
     std::string reply_post(const std::string& body);
-    std::string get_post_replies(const std::string& body);
+    std::string get_post_replies(const std::string& query_string);
     
     // 新增：获取单个帖子详情
     std::string get_post_detail(int post_id);

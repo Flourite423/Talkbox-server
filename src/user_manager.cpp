@@ -137,8 +137,22 @@ std::mutex& UserManager::get_users_mutex() {
 }
 
 // 新增：获取用户信息API实现
-std::string UserManager::get_user_profile(const std::string& body) {
-    std::string username = parse_json_value(body, "username");
+std::string UserManager::get_user_profile(const std::string& query_string) {
+    // 解析查询参数中的username
+    std::string username = "";
+    if (!query_string.empty()) {
+        std::string search_key = "username=";
+        size_t pos = query_string.find(search_key);
+        if (pos != std::string::npos) {
+            pos += search_key.length();
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) {
+                end = query_string.length();
+            }
+            username = query_string.substr(pos, end - pos);
+        }
+    }
+    
     if (username.empty()) {
         return create_json_response("error", "用户名不能为空");
     }

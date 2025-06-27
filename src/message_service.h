@@ -17,15 +17,15 @@ public:
     
     // 消息处理API
     std::string send_message(const std::string& body);
-    std::string get_messages(const std::string& body);
-    std::string get_contacts(const std::string& body);
+    std::string get_messages(const std::string& query_string);
+    std::string get_contacts(const std::string& query_string);
     
     // 群组消息API
     std::string create_group(const std::string& body);
     std::string join_group(const std::string& body);
     std::string leave_group(const std::string& body);
-    std::string get_groups(const std::string& body);
-    std::string get_group_messages(const std::string& body);
+    std::string get_groups(const std::string& query_string);
+    std::string get_group_messages(const std::string& query_string);
     
 private:
     Database* db;

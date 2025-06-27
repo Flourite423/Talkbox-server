@@ -49,7 +49,22 @@ std::string FileManager::upload_file(const std::string& body) {
     return create_json_response("success", "文件上传成功");
 }
 
-std::string FileManager::download_file(const std::string& filename) {
+std::string FileManager::download_file(const std::string& query_string) {
+    // 解析查询参数中的filename
+    std::string filename = "";
+    if (!query_string.empty()) {
+        std::string search_key = "filename=";
+        size_t pos = query_string.find(search_key);
+        if (pos != std::string::npos) {
+            pos += search_key.length();
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) {
+                end = query_string.length();
+            }
+            filename = query_string.substr(pos, end - pos);
+        }
+    }
+    
     if (filename.empty()) {
         return create_json_response("error", "文件名不能为空");
     }

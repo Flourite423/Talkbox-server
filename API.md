@@ -115,16 +115,12 @@ Talkbox 是一个基于 Linux 平台的聊天软件后端，使用 HTTP 协议�
 
 ### 4. 获取用户资料
 
-**接口**: `GET /api/user/profile`
+**接口**: `GET /api/user/profile?username=用户名`
 
 **功能**: 获取用户个人资料
 
-**请求参数**:
-```json
-{
-    "username": "用户名"
-}
-```
+**请求参数**: 通过 URL 查询参数传递
+- `username`: 用户名
 
 **响应示例**:
 ```json
@@ -171,16 +167,12 @@ Talkbox 是一个基于 Linux 平台的聊天软件后端，使用 HTTP 协议�
 
 ### 5. 获取消息
 
-**接口**: `GET /api/get_messages`
+**接口**: `GET /api/get_messages?username=用户名`
 
 **功能**: 获取用户相关的所有消息（私聊和群聊）
 
-**请求参数**:
-```json
-{
-    "username": "用户名"
-}
-```
+**请求参数**: 通过 URL 查询参数传递
+- `username`: 用户名
 
 **响应示例**:
 ```json
@@ -202,18 +194,14 @@ Talkbox 是一个基于 Linux 平台的聊天软件后端，使用 HTTP 协议�
 
 ### 6. 获取联系人列表
 
-**接口**: `GET /api/get_contacts`
+**接口**: `GET /api/get_contacts?username=用户名`
 
 **功能**: 获取所有可以私聊的用户列表（除了自己），包含在线状态
 
 **说明**: 返回系统中除自己外的所有用户，无论是否有过聊天记录
 
-**请求参数**:
-```json
-{
-    "username": "用户名"
-}
-```
+**请求参数**: 通过 URL 查询参数传递
+- `username`: 用户名
 
 **响应示例**:
 ```json
@@ -310,16 +298,12 @@ Talkbox 是一个基于 Linux 平台的聊天软件后端，使用 HTTP 协议�
 
 ### 10. 获取帖子回复
 
-**接口**: `GET /api/get_post_replies`
+**接口**: `GET /api/get_post_replies?post_id=帖子ID`
 
 **功能**: 获取指定帖子的所有回复
 
-**请求参数** (JSON请求体):
-```json
-{
-    "post_id": "帖子ID"
-}
-```
+**请求参数**: 通过 URL 查询参数传递
+- `post_id`: 帖子ID
 
 **响应示例**:
 ```json
@@ -415,7 +399,7 @@ Talkbox 是一个基于 Linux 平台的聊天软件后端，使用 HTTP 协议�
 
 ### 14. 获取群组列表
 
-**接口**: `GET /api/get_groups`
+**接口**: `GET /api/get_groups?username=用户名` (可选参数)
 
 **功能**: 获取群组列表
 
@@ -423,12 +407,8 @@ Talkbox 是一个基于 Linux 平台的聊天软件后端，使用 HTTP 协议�
 - 如果提供用户名，返回该用户加入的群组列表，包含`is_member`字段
 - 如果不提供用户名，返回所有群组列表，不包含`is_member`字段
 
-**请求参数** (可选):
-```json
-{
-    "username": "用户名"
-}
-```
+**请求参数**: 通过 URL 查询参数传递（可选）
+- `username`: 用户名（可选）
 
 **响应示例**:
 ```json
@@ -449,17 +429,13 @@ Talkbox 是一个基于 Linux 平台的聊天软件后端，使用 HTTP 协议�
 
 ### 15. 获取群组消息
 
-**接口**: `GET /api/get_group_messages`
+**接口**: `GET /api/get_group_messages?username=用户名&group_id=群组ID`
 
 **功能**: 获取指定群组的消息历史
 
-**请求参数** (JSON请求体):
-```json
-{
-    "username": "用户名",
-    "group_id": "群组ID"
-}
-```
+**请求参数**: 通过 URL 查询参数传递
+- `username`: 用户名
+- `group_id`: 群组ID
 
 **响应示例**:
 ```json
@@ -491,7 +467,7 @@ Talkbox 是一个基于 Linux 平台的聊天软件后端，使用 HTTP 协议�
 {
     "username": "上传者用户名",
     "filename": "文件名",
-    "data": "文件数据（二进制数据）"
+    "data": "文件数据"
 }
 ```
 
@@ -515,7 +491,7 @@ Talkbox 是一个基于 Linux 平台的聊天软件后端，使用 HTTP 协议�
 ```json
 {
     "status": "success",
-    "data": "文件内容（二进制数据）"
+    "data": "文件内容"
 }
 ```
 
@@ -544,11 +520,11 @@ Talkbox 是一个基于 Linux 平台的聊天软件后端，使用 HTTP 协议�
 2. 需要认证的接口必须在请求参数中提供有效的用户名
 3. 群聊需要先创建群组，然后加入群组后才能发送消息
 4. 私聊消息使用 `receiver_id`，群聊消息使用 `group_id`
-5. 文件上传时需要将文件内容编码为字符串形式
+5. 文件上传时需要将文件内容编码为utf-8形式
 6. 服务器默认在 8080 端口启动，可通过命令行参数修改
 7. 上传的文件存储在服务器的 `uploads/` 目录下
 8. 群组创建者会自动加入群组，无需手动加入
 9. 联系人列表返回所有用户（除自己），无论是否有聊天记录
-10. 部分GET接口使用JSON请求体传递参数（如`get_post_replies`、`get_group_messages`）
+10. 部分GET接口使用查询参数传递参数（如`get_user_profile`、`get_messages`等）
 11. 重复加入已加入的群组会返回错误信息
 12. 只有群组成员才能发送群组消息和获取群组消息历史

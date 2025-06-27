@@ -15,7 +15,7 @@ public:
     
     // 文件API
     std::string upload_file(const std::string& body);
-    std::string download_file(const std::string& filename);
+    std::string download_file(const std::string& query_string);
     
 private:
     std::string upload_dir;

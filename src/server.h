@@ -38,6 +38,7 @@ private:
     void handle_client(int client_fd);
     std::string handle_request(const std::string& request, int client_fd);
     std::string extract_token_from_request(const std::string& request);
+    std::string parse_query_param(const std::string& query_string, const std::string& key);
 };
 
 #endif // SERVER_H

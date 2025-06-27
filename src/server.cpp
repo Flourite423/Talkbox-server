@@ -107,7 +107,16 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
         return "HTTP/1.1 400 Bad Request\r\n\r\n";
     }
     
-    std::string path = first_line.substr(path_start, path_end - path_start);
+    std::string full_path = first_line.substr(path_start, path_end - path_start);
+    
+    // 分离路径和查询参数
+    std::string path = full_path;
+    std::string query_string;
+    size_t query_start = full_path.find('?');
+    if (query_start != std::string::npos) {
+        path = full_path.substr(0, query_start);
+        query_string = full_path.substr(query_start + 1);
+    }
     
     // 查找请求体
     size_t body_start = request.find("\r\n\r\n");
@@ -127,7 +136,7 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
     } else if (path == "/api/logout" && method == "POST") {
         return user_manager->logout_user(body, client_fd);
     } else if (path == "/api/user/profile" && method == "GET") {
-        return user_manager->get_user_profile(body);
+        return user_manager->get_user_profile(query_string);
     } else if (path.find("/api/post/") == 0 && method == "GET") {
         // 解析帖子ID
         std::string post_id_str = path.substr(10); // 移除 "/api/post/" 部分
@@ -143,30 +152,21 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
     } else if (path == "/api/send_message" && method == "POST") {
         return message_service->send_message(body);
     } else if (path == "/api/get_messages" && method == "GET") {
-        return message_service->get_messages(body);
+        return message_service->get_messages(query_string);
     } else if (path == "/api/get_contacts" && method == "GET") {
-        return message_service->get_contacts(body);
+        return message_service->get_contacts(query_string);
     } else if (path == "/api/create_post" && method == "POST") {
         return forum_service->create_post(body);
     } else if (path == "/api/get_posts" && method == "GET") {
-        return forum_service->get_posts(body);
+        return forum_service->get_posts(query_string);
     } else if (path == "/api/reply_post" && method == "POST") {
         return forum_service->reply_post(body);
     } else if (path == "/api/get_post_replies" && method == "GET") {
-        return forum_service->get_post_replies(body);
+        return forum_service->get_post_replies(query_string);
     } else if (path == "/api/upload_file" && method == "POST") {
         return file_manager->upload_file(body);
-    } else if (path.find("/api/download_file") == 0 && method == "GET") {
-        size_t query_start = path.find('?');
-        if (query_start != std::string::npos) {
-            std::string query = path.substr(query_start + 1);
-            size_t filename_start = query.find("filename=");
-            if (filename_start != std::string::npos) {
-                std::string filename = query.substr(filename_start + 9);
-                return file_manager->download_file(filename);
-            }
-        }
-        return create_json_response("error", "缺少文件名参数");
+    } else if (path == "/api/download_file" && method == "GET") {
+        return file_manager->download_file(query_string);
     } else if (path == "/api/create_group" && method == "POST") {
         return message_service->create_group(body);
     } else if (path == "/api/join_group" && method == "POST") {
@@ -174,15 +174,15 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
     } else if (path == "/api/leave_group" && method == "POST") {
         return message_service->leave_group(body);
     } else if (path == "/api/get_groups" && method == "GET") {
-        return message_service->get_groups(body);
+        return message_service->get_groups(query_string);
     } else if (path == "/api/get_group_messages" && method == "GET") {
-        return message_service->get_group_messages(body);
+        return message_service->get_group_messages(query_string);
     } else if (method != "GET" && method != "POST") {
         // 不支持的HTTP方法
         return create_json_response("error", "不支持的HTTP方法: " + method);
     } else {
         // 无效的API路径
-        return create_json_response("error", "无效的API路径: " + path);
+        return create_json_response("error", "无效的API路径: " + path + " " + method);
     }
 }
 
@@ -200,4 +200,24 @@ std::string Server::extract_token_from_request(const std::string& request) {
     }
     
     return request.substr(pos, end - pos);
+}
+
+std::string Server::parse_query_param(const std::string& query_string, const std::string& key) {
+    if (query_string.empty()) {
+        return "";
+    }
+    
+    std::string search_key = key + "=";
+    size_t pos = query_string.find(search_key);
+    if (pos == std::string::npos) {
+        return "";
+    }
+    
+    pos += search_key.length();
+    size_t end = query_string.find('&', pos);
+    if (end == std::string::npos) {
+        end = query_string.length();
+    }
+    
+    return query_string.substr(pos, end - pos);
 }
