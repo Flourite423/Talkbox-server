@@ -87,8 +87,7 @@ Talkbox 是一个基于 Linux 平台的聊天软件后端，使用 HTTP 协议�
     "status": "success",
     "data": {
         "user_id": 1,
-        "username": "用户名",
-        "token": "JBAEquRaO9So5RED4jBMuM78xLWdgbkk"
+        "username": "用户名"
     }
 }
 ```

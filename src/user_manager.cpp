@@ -43,22 +43,18 @@ std::string UserManager::login_user(const std::string& body, int client_fd) {
         return create_json_response("error", "用户名或密码错误");
     }
     
-    // 生成新的token
-    std::string token = generate_token();
-    
     std::lock_guard<std::mutex> lock(users_mutex);
     
     // 更新用户信息
     user.online = true;
     user.socket_fd = client_fd;
-    user.token = token;
+    // 不再需要token，清空token字段
+    user.token = "";
     online_users[user.user_id] = user;
-    token_to_user_id[token] = user.user_id;
     
-    // 返回登录成功的用户信息
+    // 返回登录成功的用户信息（不包含token）
     std::string data = "{\"user_id\":" + std::to_string(user.user_id) + 
-                       ",\"username\":\"" + user.username + 
-                       "\",\"token\":\"" + token + "\"}";
+                       ",\"username\":\"" + user.username + "\"}";
     
     return create_json_response("success", data);
 }
@@ -80,11 +76,6 @@ std::string UserManager::logout_user(const std::string& body, int client_fd) {
     
     if (online_users.find(user_id) != online_users.end()) {
         online_users[user_id].online = false;
-        // 清理token映射
-        std::string token = online_users[user_id].token;
-        if (!token.empty()) {
-            token_to_user_id.erase(token);
-        }
         online_users.erase(user_id);
     }
     
