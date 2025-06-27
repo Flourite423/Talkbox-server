@@ -18,14 +18,15 @@ public:
     // 用户管理API
     std::string register_user(const std::string& body);
     std::string login_user(const std::string& body, int client_fd);
-    std::string logout_user(const std::string& token, int client_fd);
+    std::string logout_user(const std::string& body, int client_fd);
     
     // 新增：获取用户信息API
-    std::string get_user_profile(const std::string& token);
+    std::string get_user_profile(const std::string& body);
     std::string get_username_by_id(int user_id);
     
     // 工具函数
     int get_user_id_by_token(const std::string& token);
+    int get_user_id_by_username(const std::string& username);  // 新增：通过用户名获取用户ID
     int get_user_id_by_fd(int client_fd);
     std::string generate_token();
     bool is_valid_token(const std::string& token);

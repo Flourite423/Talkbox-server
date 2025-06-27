@@ -14,10 +14,15 @@ FileManager::FileManager(const std::string& upload_dir, UserManager* user_manage
 FileManager::~FileManager() {
 }
 
-std::string FileManager::upload_file(const std::string& body, const std::string& token) {
-    int user_id = user_manager->get_user_id_by_token(token);
+std::string FileManager::upload_file(const std::string& body) {
+    std::string username = parse_json_value(body, "username");
+    if (username.empty()) {
+        return create_json_response("error", "用户名不能为空");
+    }
+    
+    int user_id = user_manager->get_user_id_by_username(username);
     if (user_id == -1) {
-        return create_json_response("error", "无效的token");
+        return create_json_response("error", "无效的用户名");
     }
     
     std::string filename = parse_json_value(body, "filename");

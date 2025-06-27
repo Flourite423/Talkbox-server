@@ -14,7 +14,7 @@ public:
     ~FileManager();
     
     // 文件API
-    std::string upload_file(const std::string& body, const std::string& token);
+    std::string upload_file(const std::string& body);
     std::string download_file(const std::string& filename);
     
 private:

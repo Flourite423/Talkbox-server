@@ -12,10 +12,15 @@ MessageService::MessageService(Database* db, UserManager* user_manager)
 MessageService::~MessageService() {
 }
 
-std::string MessageService::send_message(const std::string& body, const std::string& token) {
-    int sender_id = user_manager->get_user_id_by_token(token);
+std::string MessageService::send_message(const std::string& body) {
+    std::string username = parse_json_value(body, "username");
+    if (username.empty()) {
+        return create_json_response("error", "用户名不能为空");
+    }
+    
+    int sender_id = user_manager->get_user_id_by_username(username);
     if (sender_id == -1) {
-        return create_json_response("error", "无效的token");
+        return create_json_response("error", "无效的用户名");
     }
     
     std::string receiver_id_str = parse_json_value(body, "receiver_id");
@@ -65,10 +70,15 @@ std::string MessageService::send_message(const std::string& body, const std::str
     }
 }
 
-std::string MessageService::get_messages(const std::string& token) {
-    int user_id = user_manager->get_user_id_by_token(token);
+std::string MessageService::get_messages(const std::string& body) {
+    std::string username = parse_json_value(body, "username");
+    if (username.empty()) {
+        return create_json_response("error", "用户名不能为空");
+    }
+    
+    int user_id = user_manager->get_user_id_by_username(username);
     if (user_id == -1) {
-        return create_json_response("error", "无效的token");
+        return create_json_response("error", "无效的用户名");
     }
     
     std::vector<Message> messages = db->get_messages(user_id);
@@ -102,10 +112,15 @@ std::string MessageService::get_messages(const std::string& token) {
     return create_json_response("success", json_array.str());
 }
 
-std::string MessageService::get_contacts(const std::string& token) {
-    int user_id = user_manager->get_user_id_by_token(token);
+std::string MessageService::get_contacts(const std::string& body) {
+    std::string username = parse_json_value(body, "username");
+    if (username.empty()) {
+        return create_json_response("error", "用户名不能为空");
+    }
+    
+    int user_id = user_manager->get_user_id_by_username(username);
     if (user_id == -1) {
-        return create_json_response("error", "无效的token");
+        return create_json_response("error", "无效的用户名");
     }
     
     std::vector<User> contacts = db->get_user_contacts(user_id);
@@ -129,10 +144,15 @@ std::string MessageService::get_contacts(const std::string& token) {
     return create_json_response("success", json_array.str());
 }
 
-std::string MessageService::create_group(const std::string& body, const std::string& token) {
-    int user_id = user_manager->get_user_id_by_token(token);
+std::string MessageService::create_group(const std::string& body) {
+    std::string username = parse_json_value(body, "username");
+    if (username.empty()) {
+        return create_json_response("error", "用户名不能为空");
+    }
+    
+    int user_id = user_manager->get_user_id_by_username(username);
     if (user_id == -1) {
-        return create_json_response("error", "无效的token");
+        return create_json_response("error", "无效的用户名");
     }
     
     std::string group_name = parse_json_value(body, "group_name");
@@ -155,10 +175,15 @@ std::string MessageService::create_group(const std::string& body, const std::str
     }
 }
 
-std::string MessageService::join_group(const std::string& body, const std::string& token) {
-    int user_id = user_manager->get_user_id_by_token(token);
+std::string MessageService::join_group(const std::string& body) {
+    std::string username = parse_json_value(body, "username");
+    if (username.empty()) {
+        return create_json_response("error", "用户名不能为空");
+    }
+    
+    int user_id = user_manager->get_user_id_by_username(username);
     if (user_id == -1) {
-        return create_json_response("error", "无效的token");
+        return create_json_response("error", "无效的用户名");
     }
     
     std::string group_id_str = parse_json_value(body, "group_id");
@@ -179,10 +204,15 @@ std::string MessageService::join_group(const std::string& body, const std::strin
     }
 }
 
-std::string MessageService::leave_group(const std::string& body, const std::string& token) {
-    int user_id = user_manager->get_user_id_by_token(token);
+std::string MessageService::leave_group(const std::string& body) {
+    std::string username = parse_json_value(body, "username");
+    if (username.empty()) {
+        return create_json_response("error", "用户名不能为空");
+    }
+    
+    int user_id = user_manager->get_user_id_by_username(username);
     if (user_id == -1) {
-        return create_json_response("error", "无效的token");
+        return create_json_response("error", "无效的用户名");
     }
     
     std::string group_id_str = parse_json_value(body, "group_id");
@@ -203,12 +233,13 @@ std::string MessageService::leave_group(const std::string& body, const std::stri
     }
 }
 
-std::string MessageService::get_groups(const std::string& token) {
+std::string MessageService::get_groups(const std::string& body) {
     std::vector<Group> groups;
     int user_id = -1;
     
-    if (!token.empty()) {
-        user_id = user_manager->get_user_id_by_token(token);
+    std::string username = parse_json_value(body, "username");
+    if (!username.empty()) {
+        user_id = user_manager->get_user_id_by_username(username);
     }
     
     if (user_id != -1) {
@@ -244,10 +275,15 @@ std::string MessageService::get_groups(const std::string& token) {
     return create_json_response("success", json_array.str());
 }
 
-std::string MessageService::get_group_messages(const std::string& body, const std::string& token) {
-    int user_id = user_manager->get_user_id_by_token(token);
+std::string MessageService::get_group_messages(const std::string& body) {
+    std::string username = parse_json_value(body, "username");
+    if (username.empty()) {
+        return create_json_response("error", "用户名不能为空");
+    }
+    
+    int user_id = user_manager->get_user_id_by_username(username);
     if (user_id == -1) {
-        return create_json_response("error", "无效的token");
+        return create_json_response("error", "无效的用户名");
     }
     
     std::string group_id_str = parse_json_value(body, "group_id");

@@ -63,17 +63,28 @@ std::string UserManager::login_user(const std::string& body, int client_fd) {
     return create_json_response("success", data);
 }
 
-std::string UserManager::logout_user(const std::string& token, int client_fd) {
-    int user_id = get_user_id_by_token(token);
+std::string UserManager::logout_user(const std::string& body, int client_fd) {
+    (void)client_fd;  // 参数未使用，保留为了接口兼容性
+    std::string username = parse_json_value(body, "username");
+    
+    if (username.empty()) {
+        return create_json_response("error", "用户名不能为空");
+    }
+    
+    int user_id = get_user_id_by_username(username);
     if (user_id == -1) {
-        return create_json_response("error", "无效的token");
+        return create_json_response("error", "无效的用户名");
     }
     
     std::lock_guard<std::mutex> lock(users_mutex);
     
     if (online_users.find(user_id) != online_users.end()) {
         online_users[user_id].online = false;
-        token_to_user_id.erase(token);
+        // 清理token映射
+        std::string token = online_users[user_id].token;
+        if (!token.empty()) {
+            token_to_user_id.erase(token);
+        }
         online_users.erase(user_id);
     }
     
@@ -135,10 +146,15 @@ std::mutex& UserManager::get_users_mutex() {
 }
 
 // 新增：获取用户信息API实现
-std::string UserManager::get_user_profile(const std::string& token) {
-    int user_id = get_user_id_by_token(token);
+std::string UserManager::get_user_profile(const std::string& body) {
+    std::string username = parse_json_value(body, "username");
+    if (username.empty()) {
+        return create_json_response("error", "用户名不能为空");
+    }
+    
+    int user_id = get_user_id_by_username(username);
     if (user_id == -1) {
-        return create_json_response("error", "无效的token");
+        return create_json_response("error", "无效的用户名");
     }
     
     std::lock_guard<std::mutex> lock(users_mutex);
@@ -163,4 +179,16 @@ std::string UserManager::get_username_by_id(int user_id) {
     
     // 如果不在线，从数据库查询
     return db->get_username_by_id(user_id);
+}
+
+int UserManager::get_user_id_by_username(const std::string& username) {
+    std::lock_guard<std::mutex> lock(users_mutex);
+    
+    for (const auto& pair : online_users) {
+        if (pair.second.username == username && pair.second.online) {
+            return pair.first;
+        }
+    }
+    
+    return -1;
 }

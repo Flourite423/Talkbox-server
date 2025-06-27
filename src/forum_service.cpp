@@ -12,10 +12,15 @@ ForumService::ForumService(Database* db, UserManager* user_manager)
 ForumService::~ForumService() {
 }
 
-std::string ForumService::create_post(const std::string& body, const std::string& token) {
-    int user_id = user_manager->get_user_id_by_token(token);
+std::string ForumService::create_post(const std::string& body) {
+    std::string username = parse_json_value(body, "username");
+    if (username.empty()) {
+        return create_json_response("error", "用户名不能为空");
+    }
+    
+    int user_id = user_manager->get_user_id_by_username(username);
     if (user_id == -1) {
-        return create_json_response("error", "无效的token");
+        return create_json_response("error", "无效的用户名");
     }
     
     std::string title = parse_json_value(body, "title");
@@ -39,6 +44,7 @@ std::string ForumService::create_post(const std::string& body, const std::string
 }
 
 std::string ForumService::get_posts(const std::string& body) {
+    (void)body;  // 参数未使用，获取所有帖子时不需要特定参数
     std::vector<Post> posts = db->get_posts();
     
     std::ostringstream json_array;
@@ -82,10 +88,15 @@ std::string ForumService::get_posts(const std::string& body) {
     return create_json_response("success", json_array.str());
 }
 
-std::string ForumService::reply_post(const std::string& body, const std::string& token) {
-    int user_id = user_manager->get_user_id_by_token(token);
+std::string ForumService::reply_post(const std::string& body) {
+    std::string username = parse_json_value(body, "username");
+    if (username.empty()) {
+        return create_json_response("error", "用户名不能为空");
+    }
+    
+    int user_id = user_manager->get_user_id_by_username(username);
     if (user_id == -1) {
-        return create_json_response("error", "无效的token");
+        return create_json_response("error", "无效的用户名");
     }
     
     std::string post_id_str = parse_json_value(body, "post_id");

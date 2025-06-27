@@ -16,9 +16,9 @@ public:
     ~ForumService();
     
     // 论坛API
-    std::string create_post(const std::string& body, const std::string& token);
+    std::string create_post(const std::string& body);
     std::string get_posts(const std::string& body);
-    std::string reply_post(const std::string& body, const std::string& token);
+    std::string reply_post(const std::string& body);
     std::string get_post_replies(const std::string& body);
     
     // 新增：获取单个帖子详情
