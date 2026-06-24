@@ -67,6 +67,8 @@ void Server::run() {
             continue;
         }
         
+        // 使用 detached 线程处理客户端连接
+        // 注意：在服务器关闭时，这些线程会被强制终止
         std::thread([this, client_fd]() {
             handle_client(client_fd);
         }).detach();
@@ -74,6 +76,8 @@ void Server::run() {
     
     std::cout << "服务器正在关闭..." << std::endl;
 }
+
+
 
 void Server::handle_client(int client_fd) {
     // 增大缓冲区以支持大文件上传 (64KB)

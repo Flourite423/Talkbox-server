@@ -4,6 +4,8 @@
 #include <string>
 #include <memory>
 #include <thread>
+#include <vector>
+#include <mutex>
 #include "common.h"
 #include <atomic>
 
