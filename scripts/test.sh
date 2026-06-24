@@ -1,8 +1,9 @@
 #!/bin/bash
+set -e
 
 # Talkbox 完整API测试脚本 - 基于用户名认证
 
-SERVER_URL="http://localhost:8080"
+SERVER_URL="${SERVER_URL:-http://localhost:8080}"
 GROUP_ID=""
 POST_ID=""
 

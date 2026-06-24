@@ -72,12 +72,20 @@ std::string create_json_response(const std::string& status, const std::string& d
         json_body = "{\"status\":\"" + status + "\",\"data\":\"" + data + "\"}";
     }
     
+    // 根据 status 确定 HTTP 状态码
+    std::string http_status;
+    if (status == "success") {
+        http_status = "HTTP/1.1 200 OK";
+    } else {
+        http_status = "HTTP/1.1 400 Bad Request";
+    }
+    
     std::ostringstream oss;
-    oss << "HTTP/1.1 200 OK\r\n";
+    oss << http_status << "\r\n";
     oss << "Content-Type: application/json\r\n";
     oss << "Content-Length: " << json_body.length() << "\r\n";
-    oss << "Connection: close\r\n";  // 指示连接将在响应后关闭
-    oss << "Access-Control-Allow-Origin: *\r\n";  // 允许跨域
+    oss << "Connection: close\r\n";
+    oss << "Access-Control-Allow-Origin: *\r\n";
     oss << "\r\n";
     oss << json_body;
     
