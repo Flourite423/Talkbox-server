@@ -57,6 +57,12 @@ std::string get_current_timestamp();
 std::string parse_json_value(const std::string& json, const std::string& key);
 std::string create_json_response(const std::string& status, const std::string& data = "");
 
+// 安全的字符串转整数（防止 stoi 异常）
+int safe_stoi(const std::string& s, int default_val = -1);
+
+// JSON 字符串转义（防止 JSON 注入）
+std::string escape_json_string(const std::string& s);
+
 // 密码哈希函数 (PBKDF2-HMAC-SHA256)
 std::string hash_password(const std::string& password);
 bool verify_password(const std::string& password, const std::string& stored_hash);

@@ -44,13 +44,19 @@ std::string MessageService::send_message(const std::string& body) {
     
     // 私聊消息
     if (!receiver_id_str.empty()) {
-        int receiver_id = std::stoi(receiver_id_str);
+        int receiver_id = safe_stoi(receiver_id_str);
+        if (receiver_id == -1) {
+            return create_json_response("error", "无效的接收者ID");
+        }
         message.receiver_id = receiver_id;
         message.group_id = -1;
     }
     // 群聊消息
     else if (!group_id_str.empty()) {
-        int group_id = std::stoi(group_id_str);
+        int group_id = safe_stoi(group_id_str);
+        if (group_id == -1) {
+            return create_json_response("error", "无效的群组ID");
+        }
         message.receiver_id = -1;
         message.group_id = group_id;
         
@@ -97,7 +103,7 @@ std::string MessageService::get_messages(const std::string& query_string) {
                 end = query_string.length();
             }
             try {
-                limit = std::stoi(query_string.substr(pos, end - pos));
+                limit = safe_stoi(query_string.substr(pos, end - pos));
                 if (limit <= 0 || limit > 200) limit = 50;  // 限制范围
             } catch (...) {}
         }
@@ -111,7 +117,7 @@ std::string MessageService::get_messages(const std::string& query_string) {
                 end = query_string.length();
             }
             try {
-                before_id = std::stoi(query_string.substr(pos, end - pos));
+                before_id = safe_stoi(query_string.substr(pos, end - pos));
             } catch (...) {}
         }
     }
@@ -143,12 +149,12 @@ std::string MessageService::get_messages(const std::string& query_string) {
         
         json_array << "{\"message_id\":" << messages[i].message_id
                   << ",\"sender_id\":" << messages[i].sender_id
-                  << ",\"sender_username\":\"" << messages[i].sender_username << "\""
+                  << ",\"sender_username\":\"" << escape_json_string(messages[i].sender_username) << "\""
                   << ",\"receiver_id\":" << messages[i].receiver_id
                   << ",\"group_id\":" << messages[i].group_id
-                  << ",\"content\":\"" << messages[i].content << "\""
-                  << ",\"type\":\"" << messages[i].type << "\""
-                  << ",\"timestamp\":\"" << messages[i].timestamp << "\"}";
+                  << ",\"content\":\"" << escape_json_string(messages[i].content) << "\""
+                  << ",\"type\":\"" << escape_json_string(messages[i].type) << "\""
+                  << ",\"timestamp\":\"" << escape_json_string(messages[i].timestamp) << "\"}";
     }
     
     json_array << "]";
@@ -204,7 +210,7 @@ std::string MessageService::get_contacts(const std::string& query_string) {
         bool is_online = user_manager->is_user_online(contacts[i].user_id);
         
         json_array << "{\"user_id\":" << contacts[i].user_id
-                  << ",\"username\":\"" << contacts[i].username << "\""
+                  << ",\"username\":\"" << escape_json_string(contacts[i].username) << "\""
                   << ",\"online\":" << (is_online ? "true" : "false")
                   << "}";
     }
@@ -261,7 +267,10 @@ std::string MessageService::join_group(const std::string& body) {
         return create_json_response("error", "群组ID不能为空");
     }
     
-    int group_id = std::stoi(group_id_str);
+    int group_id = safe_stoi(group_id_str);
+    if (group_id == -1) {
+        return create_json_response("error", "无效的群组ID");
+    }
     
     if (db->is_user_in_group(user_id, group_id)) {
         return create_json_response("error", "您已经是该群组的成员");
@@ -290,7 +299,10 @@ std::string MessageService::leave_group(const std::string& body) {
         return create_json_response("error", "群组ID不能为空");
     }
     
-    int group_id = std::stoi(group_id_str);
+    int group_id = safe_stoi(group_id_str);
+    if (group_id == -1) {
+        return create_json_response("error", "无效的群组ID");
+    }
     
     if (!db->is_user_in_group(user_id, group_id)) {
         return create_json_response("error", "您不是该群组的成员");
@@ -392,7 +404,7 @@ std::string MessageService::get_group_messages(const std::string& query_string) 
             size_t end = query_string.find('&', pos);
             if (end == std::string::npos) end = query_string.length();
             try {
-                limit = std::stoi(query_string.substr(pos, end - pos));
+                limit = safe_stoi(query_string.substr(pos, end - pos));
                 if (limit <= 0 || limit > 200) limit = 50;
             } catch (...) {}
         }
@@ -404,7 +416,7 @@ std::string MessageService::get_group_messages(const std::string& query_string) 
             size_t end = query_string.find('&', pos);
             if (end == std::string::npos) end = query_string.length();
             try {
-                before_id = std::stoi(query_string.substr(pos, end - pos));
+                before_id = safe_stoi(query_string.substr(pos, end - pos));
             } catch (...) {}
         }
     }
@@ -422,7 +434,7 @@ std::string MessageService::get_group_messages(const std::string& query_string) 
         return create_json_response("error", "群组ID不能为空");
     }
     
-    int group_id = std::stoi(group_id_str);
+    int group_id = safe_stoi(group_id_str);
     
     if (!db->is_user_in_group(user_id, group_id)) {
         return create_json_response("error", "您不是该群组的成员");
@@ -446,11 +458,11 @@ std::string MessageService::get_group_messages(const std::string& query_string) 
         
         json_array << "{\"message_id\":" << messages[i].message_id
                   << ",\"sender_id\":" << messages[i].sender_id
-                  << ",\"sender_username\":\"" << messages[i].sender_username << "\""
+                  << ",\"sender_username\":\"" << escape_json_string(messages[i].sender_username) << "\""
                   << ",\"group_id\":" << messages[i].group_id
-                  << ",\"content\":\"" << messages[i].content << "\""
-                  << ",\"type\":\"" << messages[i].type << "\""
-                  << ",\"timestamp\":\"" << messages[i].timestamp << "\"}";
+                  << ",\"content\":\"" << escape_json_string(messages[i].content) << "\""
+                  << ",\"type\":\"" << escape_json_string(messages[i].type) << "\""
+                  << ",\"timestamp\":\"" << escape_json_string(messages[i].timestamp) << "\"}";
     }
     
     json_array << "]";

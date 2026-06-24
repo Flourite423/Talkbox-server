@@ -10,8 +10,9 @@
 std::string get_current_timestamp() {
     time_t now = time(nullptr);
     char buffer[80];
-    struct tm* timeinfo = localtime(&now);
-    strftime(buffer, sizeof(buffer), "%a %b %d %H:%M:%S %Y", timeinfo);
+    struct tm timeinfo;
+    localtime_r(&now, &timeinfo);
+    strftime(buffer, sizeof(buffer), "%a %b %d %H:%M:%S %Y", &timeinfo);
     return std::string(buffer);
 }
 
@@ -95,6 +96,42 @@ std::string create_json_response(const std::string& status, const std::string& d
     return oss.str();
 }
 
+// 安全的字符串转整数
+int safe_stoi(const std::string& s, int default_val) {
+    if (s.empty()) return default_val;
+    try {
+        return std::stoi(s);
+    } catch (const std::exception&) {
+        return default_val;
+    }
+}
+
+// JSON 字符串转义
+std::string escape_json_string(const std::string& s) {
+    std::string result;
+    result.reserve(s.length() + 10);
+    for (char c : s) {
+        switch (c) {
+            case '"':  result += "\\\""; break;
+            case '\\': result += "\\\\"; break;
+            case '\b': result += "\\b"; break;
+            case '\f': result += "\\f"; break;
+            case '\n': result += "\\n"; break;
+            case '\r': result += "\\r"; break;
+            case '\t': result += "\\t"; break;
+            default:
+                if (static_cast<unsigned char>(c) < 0x20) {
+                    char buf[8];
+                    snprintf(buf, sizeof(buf), "\\u%04x", static_cast<unsigned char>(c));
+                    result += buf;
+                } else {
+                    result += c;
+                }
+        }
+    }
+    return result;
+}
+
 // 密码哈希函数 (PBKDF2-HMAC-SHA256)
 // 存储格式: iterations:hex(salt):hex(hash)
 std::string hash_password(const std::string& password) {
@@ -154,15 +191,23 @@ bool verify_password(const std::string& password, const std::string& stored_hash
     // 解析盐
     const int SALT_LEN = 16;
     unsigned char salt[SALT_LEN];
-    for (int i = 0; i < SALT_LEN; ++i) {
-        salt[i] = (unsigned char)std::stoi(salt_hex.substr(i * 2, 2), nullptr, 16);
+    try {
+        for (int i = 0; i < SALT_LEN; ++i) {
+            salt[i] = (unsigned char)std::stoi(salt_hex.substr(i * 2, 2), nullptr, 16);
+        }
+    } catch (...) {
+        return false;
     }
     
     // 解析原始哈希
     const int HASH_LEN = 32;
     unsigned char expected_hash[HASH_LEN];
-    for (int i = 0; i < HASH_LEN; ++i) {
-        expected_hash[i] = (unsigned char)std::stoi(hash_hex.substr(i * 2, 2), nullptr, 16);
+    try {
+        for (int i = 0; i < HASH_LEN; ++i) {
+            expected_hash[i] = (unsigned char)std::stoi(hash_hex.substr(i * 2, 2), nullptr, 16);
+        }
+    } catch (...) {
+        return false;
     }
     
     // 计算输入密码的哈希

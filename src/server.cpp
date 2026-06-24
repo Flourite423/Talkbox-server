@@ -42,10 +42,14 @@ void Server::setup_server() {
     server_addr.sin_port = htons(port);
     
     if (bind(server_fd, (sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
+        close(server_fd);
+        server_fd = -1;
         throw std::runtime_error("绑定端口失败");
     }
     
     if (listen(server_fd, 10) == -1) {
+        close(server_fd);
+        server_fd = -1;
         throw std::runtime_error("监听失败");
     }
 }
@@ -53,12 +57,13 @@ void Server::setup_server() {
 void Server::run() {
     std::cout << "服务器已启动，监听端口: " << port << std::endl;
     
-    while (true) {
+    while (g_running) {
         sockaddr_in client_addr{};
         socklen_t client_len = sizeof(client_addr);
         
         int client_fd = accept(server_fd, (sockaddr*)&client_addr, &client_len);
         if (client_fd == -1) {
+            if (!g_running) break;
             continue;
         }
         
@@ -66,10 +71,13 @@ void Server::run() {
             handle_client(client_fd);
         }).detach();
     }
+    
+    std::cout << "服务器正在关闭..." << std::endl;
 }
 
 void Server::handle_client(int client_fd) {
-    char buffer[4096];
+    // 增大缓冲区以支持大文件上传 (64KB)
+    char buffer[65536];
     
     while (true) {
         int bytes_read = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
@@ -81,7 +89,17 @@ void Server::handle_client(int client_fd) {
         std::string request(buffer);
         
         std::string response = handle_request(request, client_fd);
-        send(client_fd, response.c_str(), response.length(), 0);
+        
+        // 检查 send 返回值，处理部分写入
+        size_t total_sent = 0;
+        size_t to_send = response.length();
+        while (total_sent < to_send) {
+            ssize_t sent = send(client_fd, response.c_str() + total_sent, to_send - total_sent, 0);
+            if (sent <= 0) {
+                break;  // 发送失败或连接关闭
+            }
+            total_sent += sent;
+        }
     }
     
     // 客户端断开连接，清理在线状态
@@ -130,27 +148,60 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
     // 提取token
     std::string token = extract_token_from_request(request);
     
+    // 认证辅助函数：验证用户是否已登录
+    auto verify_authenticated = [&](const std::string& username) -> bool {
+        if (username.empty()) return false;
+        int user_id = user_manager->get_user_id_by_username(username);
+        return user_id != -1 && user_manager->is_user_online(user_id);
+    };
+    
+    // 从 body 或 query_string 提取 username
+    auto extract_username = [&](const std::string& body, const std::string& query) -> std::string {
+        std::string username = parse_json_value(body, "username");
+        if (username.empty()) {
+            size_t pos = query.find("username=");
+            if (pos != std::string::npos) {
+                pos += 8;
+                size_t end = query.find('&', pos);
+                if (end == std::string::npos) end = query.length();
+                username = query.substr(pos, end - pos);
+            }
+        }
+        return username;
+    };
+    
     // 根据路径和方法处理请求
+    // 不需要认证的接口
     if (path == "/api/register" && method == "POST") {
         return user_manager->register_user(body);
     } else if (path == "/api/login" && method == "POST") {
         return user_manager->login_user(body, client_fd);
-    } else if (path == "/api/logout" && method == "POST") {
-        return user_manager->logout_user(body, client_fd);
-    } else if (path == "/api/user/profile" && method == "GET") {
-        return user_manager->get_user_profile(query_string);
+    } else if (path == "/api/get_posts" && method == "GET") {
+        return forum_service->get_posts(query_string);
     } else if (path.find("/api/post/") == 0 && method == "GET") {
-        // 解析帖子ID
-        std::string post_id_str = path.substr(10); // 移除 "/api/post/" 部分
+        std::string post_id_str = path.substr(10);
         if (!post_id_str.empty()) {
             try {
-                int post_id = std::stoi(post_id_str);
+                int post_id = safe_stoi(post_id_str);
                 return forum_service->get_post_detail(post_id);
             } catch (const std::exception&) {
                 return create_json_response("error", "无效的帖子ID");
             }
         }
         return create_json_response("error", "缺少帖子ID");
+    }
+    
+    // 以下接口需要认证
+    std::string username = extract_username(body, query_string);
+    if (!verify_authenticated(username)) {
+        return create_json_response("error", "未登录或会话已过期");
+    }
+    
+    // 需要认证的接口
+    if (path == "/api/logout" && method == "POST") {
+        return user_manager->logout_user(body, client_fd);
+    } else if (path == "/api/user/profile" && method == "GET") {
+        return user_manager->get_user_profile(query_string);
     } else if (path == "/api/send_message" && method == "POST") {
         return message_service->send_message(body);
     } else if (path == "/api/get_messages" && method == "GET") {
@@ -159,8 +210,6 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
         return message_service->get_contacts(query_string);
     } else if (path == "/api/create_post" && method == "POST") {
         return forum_service->create_post(body);
-    } else if (path == "/api/get_posts" && method == "GET") {
-        return forum_service->get_posts(query_string);
     } else if (path == "/api/reply_post" && method == "POST") {
         return forum_service->reply_post(body);
     } else if (path == "/api/get_post_replies" && method == "GET") {
@@ -180,20 +229,10 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
     } else if (path == "/api/get_group_messages" && method == "GET") {
         return message_service->get_group_messages(query_string);
     } else if (path == "/api/heartbeat" && method == "POST") {
-        // 心跳接口：更新用户在线状态
-        std::string username = parse_json_value(body, "username");
-        if (!username.empty()) {
-            int user_id = user_manager->get_user_id_by_username(username);
-            if (user_id != -1 && user_manager->is_user_online(user_id)) {
-                return create_json_response("success", "heartbeat_ok");
-            }
-        }
-        return create_json_response("error", "用户未在线");
+        return create_json_response("success", "heartbeat_ok");
     } else if (method != "GET" && method != "POST") {
-        // 不支持的HTTP方法
         return create_json_response("error", "不支持的HTTP方法: " + method);
     } else {
-        // 无效的API路径
         return create_json_response("error", "无效的API路径: " + path + " " + method);
     }
 }

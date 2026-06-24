@@ -56,7 +56,7 @@ std::string ForumService::get_posts(const std::string& query_string) {
             size_t end = query_string.find('&', pos);
             if (end == std::string::npos) end = query_string.length();
             try {
-                page = std::stoi(query_string.substr(pos, end - pos));
+                page = safe_stoi(query_string.substr(pos, end - pos));
                 if (page <= 0) page = 1;
             } catch (...) {}
         }
@@ -68,7 +68,7 @@ std::string ForumService::get_posts(const std::string& query_string) {
             size_t end = query_string.find('&', pos);
             if (end == std::string::npos) end = query_string.length();
             try {
-                page_size = std::stoi(query_string.substr(pos, end - pos));
+                page_size = safe_stoi(query_string.substr(pos, end - pos));
                 if (page_size <= 0 || page_size > 100) page_size = 20;
             } catch (...) {}
         }
@@ -93,10 +93,10 @@ std::string ForumService::get_posts(const std::string& query_string) {
         
         json_array << "{\"post_id\":" << posts[i].post_id
                   << ",\"user_id\":" << posts[i].user_id
-                  << ",\"username\":\"" << posts[i].username << "\""
-                  << ",\"title\":\"" << posts[i].title << "\""
-                  << ",\"content\":\"" << posts[i].content << "\""
-                  << ",\"timestamp\":\"" << posts[i].timestamp << "\"}";
+                  << ",\"username\":\"" << escape_json_string(posts[i].username) << "\""
+                  << ",\"title\":\"" << escape_json_string(posts[i].title) << "\""
+                  << ",\"content\":\"" << escape_json_string(posts[i].content) << "\""
+                  << ",\"timestamp\":\"" << escape_json_string(posts[i].timestamp) << "\"}";
     }
     
     json_array << "]";
@@ -133,7 +133,7 @@ std::string ForumService::reply_post(const std::string& body) {
         return create_json_response("error", "帖子ID和回复内容不能为空");
     }
     
-    int post_id = std::stoi(post_id_str);
+    int post_id = safe_stoi(post_id_str);
     std::string timestamp = get_current_timestamp();
     
     if (db->reply_post(post_id, user_id, content, timestamp)) {
@@ -163,7 +163,7 @@ std::string ForumService::get_post_replies(const std::string& query_string) {
         return create_json_response("error", "帖子ID不能为空");
     }
     
-    int post_id = std::stoi(post_id_str);
+    int post_id = safe_stoi(post_id_str);
     std::vector<Reply> replies = db->get_post_replies(post_id);
     
     std::ostringstream json_array;
@@ -182,9 +182,9 @@ std::string ForumService::get_post_replies(const std::string& query_string) {
                    << "\"reply_id\":" << replies[i].reply_id << ","
                    << "\"post_id\":" << replies[i].post_id << ","
                    << "\"user_id\":" << replies[i].user_id << ","
-                   << "\"username\":\"" << replies[i].username << "\","
-                   << "\"content\":\"" << replies[i].content << "\","
-                   << "\"timestamp\":\"" << replies[i].timestamp << "\""
+                   << "\"username\":\"" << escape_json_string(replies[i].username) << "\","
+                   << "\"content\":\"" << escape_json_string(replies[i].content) << "\","
+                   << "\"timestamp\":\"" << escape_json_string(replies[i].timestamp) << "\""
                    << "}";
     }
     

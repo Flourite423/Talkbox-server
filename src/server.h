@@ -5,6 +5,10 @@
 #include <memory>
 #include <thread>
 #include "common.h"
+#include <atomic>
+
+// 全局运行标志
+extern std::atomic<bool> g_running;
 #include "user_manager.h"
 #include "message_service.h"
 #include "forum_service.h"
