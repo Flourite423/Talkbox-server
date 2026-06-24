@@ -148,11 +148,11 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
     // 提取token
     std::string token = extract_token_from_request(request);
     
-    // 认证辅助函数：验证用户是否已登录
+    // 认证辅助函数：验证用户是否存在（已注册）
     auto verify_authenticated = [&](const std::string& username) -> bool {
         if (username.empty()) return false;
         int user_id = user_manager->get_user_id_by_username(username);
-        return user_id != -1 && user_manager->is_user_online(user_id);
+        return user_id != -1;  // 只检查用户是否存在，不检查是否在线
     };
     
     // 从 body 或 query_string 提取 username
@@ -181,14 +181,15 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
     } else if (path.find("/api/post/") == 0 && method == "GET") {
         std::string post_id_str = path.substr(10);
         if (!post_id_str.empty()) {
-            try {
-                int post_id = safe_stoi(post_id_str);
-                return forum_service->get_post_detail(post_id);
-            } catch (const std::exception&) {
+            int post_id = safe_stoi(post_id_str);
+            if (post_id == -1) {
                 return create_json_response("error", "无效的帖子ID");
             }
+            return forum_service->get_post_detail(post_id);
         }
         return create_json_response("error", "缺少帖子ID");
+    } else if (path == "/api/get_groups" && method == "GET") {
+        return message_service->get_groups(query_string);
     }
     
     // 以下接口需要认证
@@ -224,8 +225,6 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
         return message_service->join_group(body);
     } else if (path == "/api/leave_group" && method == "POST") {
         return message_service->leave_group(body);
-    } else if (path == "/api/get_groups" && method == "GET") {
-        return message_service->get_groups(query_string);
     } else if (path == "/api/get_group_messages" && method == "GET") {
         return message_service->get_group_messages(query_string);
     } else if (path == "/api/heartbeat" && method == "POST") {
