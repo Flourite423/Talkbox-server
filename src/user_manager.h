@@ -30,7 +30,8 @@ public:
     int get_user_id_by_fd(int client_fd);
     std::string generate_token();
     bool is_valid_token(const std::string& token);
-    
+    bool is_user_online(int user_id);  // 检查用户是否在线
+    void remove_online_user_by_fd(int client_fd);  // 根据 socket fd 移除在线用户
     // 获取用户信息
     std::unordered_map<int, User>& get_online_users();
     std::mutex& get_users_mutex();

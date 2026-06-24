@@ -2,7 +2,10 @@
 #include <ctime>
 #include <sstream>
 #include <iostream>
-
+#include <iomanip>
+#include <random>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
 // 获取当前时间戳
 std::string get_current_timestamp() {
     time_t now = time(nullptr);
@@ -90,4 +93,92 @@ std::string create_json_response(const std::string& status, const std::string& d
     oss << json_body;
     
     return oss.str();
+}
+
+// 密码哈希函数 (PBKDF2-HMAC-SHA256)
+// 存储格式: iterations:hex(salt):hex(hash)
+std::string hash_password(const std::string& password) {
+    const int ITERATIONS = 100000;
+    const int SALT_LEN = 16;
+    const int HASH_LEN = 32;
+    
+    // 生成随机盐
+    unsigned char salt[SALT_LEN];
+    if (RAND_bytes(salt, SALT_LEN) != 1) {
+        std::cerr << "生成随机盐失败" << std::endl;
+        return "";
+    }
+    
+    // 计算 PBKDF2-HMAC-SHA256
+    unsigned char hash[HASH_LEN];
+    if (PKCS5_PBKDF2_HMAC(password.c_str(), password.length(),
+                           salt, SALT_LEN,
+                           ITERATIONS, EVP_sha256(),
+                           HASH_LEN, hash) != 1) {
+        std::cerr << "PBKDF2 计算失败" << std::endl;
+        return "";
+    }
+    
+    // 转换为十六进制字符串
+    std::ostringstream oss;
+    oss << ITERATIONS << ":";
+    for (int i = 0; i < SALT_LEN; ++i) {
+        oss << std::hex << std::setw(2) << std::setfill('0') << (int)salt[i];
+    }
+    oss << ":";
+    for (int i = 0; i < HASH_LEN; ++i) {
+        oss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+    }
+    
+    return oss.str();
+}
+
+bool verify_password(const std::string& password, const std::string& stored_hash) {
+    // 解析存储的哈希: iterations:hex(salt):hex(hash)
+    std::istringstream iss(stored_hash);
+    std::string iterations_str, salt_hex, hash_hex;
+    
+    if (!std::getline(iss, iterations_str, ':') ||
+        !std::getline(iss, salt_hex, ':') ||
+        !std::getline(iss, hash_hex)) {
+        return false;
+    }
+    
+    int iterations;
+    try {
+        iterations = std::stoi(iterations_str);
+    } catch (...) {
+        return false;
+    }
+    
+    // 解析盐
+    const int SALT_LEN = 16;
+    unsigned char salt[SALT_LEN];
+    for (int i = 0; i < SALT_LEN; ++i) {
+        salt[i] = (unsigned char)std::stoi(salt_hex.substr(i * 2, 2), nullptr, 16);
+    }
+    
+    // 解析原始哈希
+    const int HASH_LEN = 32;
+    unsigned char expected_hash[HASH_LEN];
+    for (int i = 0; i < HASH_LEN; ++i) {
+        expected_hash[i] = (unsigned char)std::stoi(hash_hex.substr(i * 2, 2), nullptr, 16);
+    }
+    
+    // 计算输入密码的哈希
+    unsigned char computed_hash[HASH_LEN];
+    if (PKCS5_PBKDF2_HMAC(password.c_str(), password.length(),
+                           salt, SALT_LEN,
+                           iterations, EVP_sha256(),
+                           HASH_LEN, computed_hash) != 1) {
+        return false;
+    }
+    
+    // 比较哈希（常量时间比较防止时序攻击）
+    int result = 0;
+    for (int i = 0; i < HASH_LEN; ++i) {
+        result |= expected_hash[i] ^ computed_hash[i];
+    }
+    
+    return result == 0;
 }

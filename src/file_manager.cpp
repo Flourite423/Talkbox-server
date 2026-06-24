@@ -39,6 +39,12 @@ std::string FileManager::upload_file(const std::string& body) {
         return create_json_response("error", "文件名包含非法字符");
     }
     
+    // 文件大小限制：10MB
+    const size_t MAX_FILE_SIZE = 10 * 1024 * 1024;
+    if (data.length() > MAX_FILE_SIZE) {
+        return create_json_response("error", "文件大小超过限制（最大10MB）");
+    }
+    
     if (!ensure_upload_dir_exists()) {
         return create_json_response("error", "创建上传目录失败");
     }

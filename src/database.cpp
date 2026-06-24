@@ -1,6 +1,6 @@
 #include "database.h"
 #include <iostream>
-
+#include <algorithm>
 Database::Database(const std::string& db_path) {
     int rc = sqlite3_open(db_path.c_str(), &db);
     if (rc) {
@@ -119,6 +119,13 @@ bool Database::create_user(const std::string& username, const std::string& passw
         return false;
     }
     
+    // 对密码进行哈希处理
+    std::string hashed_password = hash_password(password);
+    if (hashed_password.empty()) {
+        std::cerr << "密码哈希失败" << std::endl;
+        return false;
+    }
+    
     std::string sql = "INSERT INTO users (username, password) VALUES (?, ?);";
     
     sqlite3_stmt* stmt;
@@ -127,7 +134,7 @@ bool Database::create_user(const std::string& username, const std::string& passw
     }
     
     sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, password.c_str(), -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, hashed_password.c_str(), -1, SQLITE_STATIC);
     
     int rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
@@ -162,7 +169,8 @@ bool Database::verify_user(const std::string& username, const std::string& passw
         return false;
     }
     
-    std::string sql = "SELECT user_id, username, password FROM users WHERE username = ? AND password = ?;";
+    // 先根据用户名查询用户
+    std::string sql = "SELECT user_id, username, password FROM users WHERE username = ?;";
     
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
@@ -170,17 +178,22 @@ bool Database::verify_user(const std::string& username, const std::string& passw
     }
     
     sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_STATIC);
-    sqlite3_bind_text(stmt, 2, password.c_str(), -1, SQLITE_STATIC);
     
     if (sqlite3_step(stmt) == SQLITE_ROW) {
         user.user_id = sqlite3_column_int(stmt, 0);
         user.username = (char*)sqlite3_column_text(stmt, 1);
-        user.password = (char*)sqlite3_column_text(stmt, 2);
+        std::string stored_hash = (char*)sqlite3_column_text(stmt, 2);
         sqlite3_finalize(stmt);
-        return true;
+        
+        // 验证密码
+        if (verify_password(password, stored_hash)) {
+            user.password = stored_hash;
+            return true;
+        }
+    } else {
+        sqlite3_finalize(stmt);
     }
     
-    sqlite3_finalize(stmt);
     return false;
 }
 
@@ -215,9 +228,26 @@ bool Database::save_message(const Message& message) {
     return rc == SQLITE_DONE;
 }
 
-std::vector<Message> Database::get_messages(int user_id) {
+std::vector<Message> Database::get_messages(int user_id, int limit, int before_id) {
     std::vector<Message> messages;
-    std::string sql = "SELECT message_id, sender_id, receiver_id, group_id, content, type, timestamp FROM messages WHERE sender_id = ? OR receiver_id = ? ORDER BY timestamp;";
+    std::string sql;
+    
+    if (!db) {
+        std::cerr << "数据库连接未初始化" << std::endl;
+        return messages;
+    }
+    
+    if (before_id > 0) {
+        // 获取指定消息ID之前的消息（用于无限滚动加载）
+        sql = "SELECT message_id, sender_id, receiver_id, group_id, content, type, timestamp "
+              "FROM messages WHERE (sender_id = ? OR receiver_id = ?) AND message_id < ? "
+              "ORDER BY message_id DESC LIMIT ?;";
+    } else {
+        // 获取最新的消息
+        sql = "SELECT message_id, sender_id, receiver_id, group_id, content, type, timestamp "
+              "FROM messages WHERE sender_id = ? OR receiver_id = ? "
+              "ORDER BY message_id DESC LIMIT ?;";
+    }
     
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
@@ -226,6 +256,13 @@ std::vector<Message> Database::get_messages(int user_id) {
     
     sqlite3_bind_int(stmt, 1, user_id);
     sqlite3_bind_int(stmt, 2, user_id);
+    
+    if (before_id > 0) {
+        sqlite3_bind_int(stmt, 3, before_id);
+        sqlite3_bind_int(stmt, 4, limit);
+    } else {
+        sqlite3_bind_int(stmt, 3, limit);
+    }
     
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         Message message;
@@ -252,7 +289,15 @@ std::vector<Message> Database::get_messages(int user_id) {
     }
     
     sqlite3_finalize(stmt);
+    
+    // 反转顺序，使消息按时间正序排列
+    std::reverse(messages.begin(), messages.end());
+    
     return messages;
+}
+
+std::vector<Message> Database::get_messages_before(int user_id, int before_id, int limit) {
+    return get_messages(user_id, limit, before_id);
 }
 
 std::vector<User> Database::get_user_contacts(int user_id) {
@@ -308,14 +353,28 @@ bool Database::create_post(const Post& post) {
     return rc == SQLITE_DONE;
 }
 
-std::vector<Post> Database::get_posts() {
+std::vector<Post> Database::get_posts(int page, int page_size) {
     std::vector<Post> posts;
-    std::string sql = "SELECT post_id, user_id, title, content, timestamp FROM posts ORDER BY timestamp DESC;";
+    
+    if (!db) {
+        std::cerr << "数据库连接未初始化" << std::endl;
+        return posts;
+    }
+    
+    // 计算偏移量
+    int offset = (page - 1) * page_size;
+    if (offset < 0) offset = 0;
+    
+    std::string sql = "SELECT post_id, user_id, title, content, timestamp FROM posts "
+                      "ORDER BY post_id DESC LIMIT ? OFFSET ?;";
     
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         return posts;
     }
+    
+    sqlite3_bind_int(stmt, 1, page_size);
+    sqlite3_bind_int(stmt, 2, offset);
     
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         Post post;
@@ -330,6 +389,10 @@ std::vector<Post> Database::get_posts() {
     
     sqlite3_finalize(stmt);
     return posts;
+}
+
+std::vector<Post> Database::get_posts_page(int page, int page_size) {
+    return get_posts(page, page_size);
 }
 
 bool Database::reply_post(int post_id, int user_id, const std::string& content, const std::string& timestamp) {
@@ -376,9 +439,26 @@ std::vector<Reply> Database::get_post_replies(int post_id) {
     return replies;
 }
 
-std::vector<Message> Database::get_group_messages(int group_id) {
+std::vector<Message> Database::get_group_messages(int group_id, int limit, int before_id) {
     std::vector<Message> messages;
-    std::string sql = "SELECT message_id, sender_id, receiver_id, group_id, content, type, timestamp FROM messages WHERE group_id = ? ORDER BY timestamp;";
+    std::string sql;
+    
+    if (!db) {
+        std::cerr << "数据库连接未初始化" << std::endl;
+        return messages;
+    }
+    
+    if (before_id > 0) {
+        // 获取指定消息ID之前的消息（用于无限滚动加载）
+        sql = "SELECT message_id, sender_id, receiver_id, group_id, content, type, timestamp "
+              "FROM messages WHERE group_id = ? AND message_id < ? "
+              "ORDER BY message_id DESC LIMIT ?;";
+    } else {
+        // 获取最新的消息
+        sql = "SELECT message_id, sender_id, receiver_id, group_id, content, type, timestamp "
+              "FROM messages WHERE group_id = ? "
+              "ORDER BY message_id DESC LIMIT ?;";
+    }
     
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
@@ -386,6 +466,13 @@ std::vector<Message> Database::get_group_messages(int group_id) {
     }
     
     sqlite3_bind_int(stmt, 1, group_id);
+    
+    if (before_id > 0) {
+        sqlite3_bind_int(stmt, 2, before_id);
+        sqlite3_bind_int(stmt, 3, limit);
+    } else {
+        sqlite3_bind_int(stmt, 2, limit);
+    }
     
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         Message message;
@@ -407,7 +494,15 @@ std::vector<Message> Database::get_group_messages(int group_id) {
     }
     
     sqlite3_finalize(stmt);
+    
+    // 反转顺序，使消息按时间正序排列
+    std::reverse(messages.begin(), messages.end());
+    
     return messages;
+}
+
+std::vector<Message> Database::get_group_messages_before(int group_id, int before_id, int limit) {
+    return get_group_messages(group_id, limit, before_id);
 }
 
 bool Database::create_group(const Group& group) {

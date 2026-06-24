@@ -1,6 +1,6 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -O2
-LDFLAGS = -lsqlite3 -lpthread
+LDFLAGS = -lsqlite3 -lpthread -lcrypto
 
 SRCDIR = src
 BUILDDIR = build

@@ -71,18 +71,48 @@ std::string MessageService::send_message(const std::string& body) {
 }
 
 std::string MessageService::get_messages(const std::string& query_string) {
-    // 解析查询参数中的username
-    std::string username = "";
+    // 解析查询参数
+    std::string username;
+    int limit = 50;  // 默认每次加载50条
+    int before_id = -1;  // 用于无限滚动加载
+    
     if (!query_string.empty()) {
-        std::string search_key = "username=";
-        size_t pos = query_string.find(search_key);
+        // 解析 username
+        size_t pos = query_string.find("username=");
         if (pos != std::string::npos) {
-            pos += search_key.length();
+            pos += 8; // strlen("username=")
             size_t end = query_string.find('&', pos);
             if (end == std::string::npos) {
                 end = query_string.length();
             }
             username = query_string.substr(pos, end - pos);
+        }
+        
+        // 解析 limit
+        pos = query_string.find("limit=");
+        if (pos != std::string::npos) {
+            pos += 6; // strlen("limit=")
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) {
+                end = query_string.length();
+            }
+            try {
+                limit = std::stoi(query_string.substr(pos, end - pos));
+                if (limit <= 0 || limit > 200) limit = 50;  // 限制范围
+            } catch (...) {}
+        }
+        
+        // 解析 before_id
+        pos = query_string.find("before_id=");
+        if (pos != std::string::npos) {
+            pos += 10; // strlen("before_id=")
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) {
+                end = query_string.length();
+            }
+            try {
+                before_id = std::stoi(query_string.substr(pos, end - pos));
+            } catch (...) {}
         }
     }
     
@@ -95,7 +125,7 @@ std::string MessageService::get_messages(const std::string& query_string) {
         return create_json_response("error", "无效的用户名");
     }
     
-    std::vector<Message> messages = db->get_messages(user_id);
+    std::vector<Message> messages = db->get_messages(user_id, limit, before_id);
     
     std::ostringstream json_array;
     json_array << "[";
@@ -123,7 +153,16 @@ std::string MessageService::get_messages(const std::string& query_string) {
     
     json_array << "]";
     
-    return create_json_response("success", json_array.str());
+    // 返回结果包含 has_more 字段，用于判断是否还有更多消息
+    std::string result = "{\"status\":\"success\",\"data\":" + json_array.str() + 
+                         ",\"has_more\":" + (messages.size() >= (size_t)limit ? "true" : "false") + "}";
+    
+    return "HTTP/1.1 200 OK\r\n"
+           "Content-Type: application/json\r\n"
+           "Content-Length: " + std::to_string(result.length()) + "\r\n"
+           "Connection: close\r\n"
+           "Access-Control-Allow-Origin: *\r\n"
+           "\r\n" + result;
 }
 
 std::string MessageService::get_contacts(const std::string& query_string) {
@@ -161,9 +200,12 @@ std::string MessageService::get_contacts(const std::string& query_string) {
             json_array << ",";
         }
         
+        // 检查用户是否在线
+        bool is_online = user_manager->is_user_online(contacts[i].user_id);
+        
         json_array << "{\"user_id\":" << contacts[i].user_id
                   << ",\"username\":\"" << contacts[i].username << "\""
-                  << ",\"online\":" << (contacts[i].online ? "true" : "false")
+                  << ",\"online\":" << (is_online ? "true" : "false")
                   << "}";
     }
     
@@ -318,33 +360,52 @@ std::string MessageService::get_groups(const std::string& query_string) {
 }
 
 std::string MessageService::get_group_messages(const std::string& query_string) {
-    // 解析查询参数中的username和group_id
-    std::string username = "";
-    std::string group_id_str = "";
+    // 解析查询参数
+    std::string username;
+    std::string group_id_str;
+    int limit = 50;  // 默认每次加载50条
+    int before_id = -1;  // 用于无限滚动加载
     
     if (!query_string.empty()) {
-        // 解析username
-        std::string search_key = "username=";
-        size_t pos = query_string.find(search_key);
+        // 解析 username
+        size_t pos = query_string.find("username=");
         if (pos != std::string::npos) {
-            pos += search_key.length();
+            pos += 8;
             size_t end = query_string.find('&', pos);
-            if (end == std::string::npos) {
-                end = query_string.length();
-            }
+            if (end == std::string::npos) end = query_string.length();
             username = query_string.substr(pos, end - pos);
         }
         
-        // 解析group_id
-        search_key = "group_id=";
-        pos = query_string.find(search_key);
+        // 解析 group_id
+        pos = query_string.find("group_id=");
         if (pos != std::string::npos) {
-            pos += search_key.length();
+            pos += 9;
             size_t end = query_string.find('&', pos);
-            if (end == std::string::npos) {
-                end = query_string.length();
-            }
+            if (end == std::string::npos) end = query_string.length();
             group_id_str = query_string.substr(pos, end - pos);
+        }
+        
+        // 解析 limit
+        pos = query_string.find("limit=");
+        if (pos != std::string::npos) {
+            pos += 6;
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) end = query_string.length();
+            try {
+                limit = std::stoi(query_string.substr(pos, end - pos));
+                if (limit <= 0 || limit > 200) limit = 50;
+            } catch (...) {}
+        }
+        
+        // 解析 before_id
+        pos = query_string.find("before_id=");
+        if (pos != std::string::npos) {
+            pos += 10;
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) end = query_string.length();
+            try {
+                before_id = std::stoi(query_string.substr(pos, end - pos));
+            } catch (...) {}
         }
     }
     
@@ -367,7 +428,7 @@ std::string MessageService::get_group_messages(const std::string& query_string) 
         return create_json_response("error", "您不是该群组的成员");
     }
     
-    std::vector<Message> messages = db->get_group_messages(group_id);
+    std::vector<Message> messages = db->get_group_messages(group_id, limit, before_id);
     
     std::ostringstream json_array;
     json_array << "[";
@@ -394,7 +455,16 @@ std::string MessageService::get_group_messages(const std::string& query_string) 
     
     json_array << "]";
     
-    return create_json_response("success", json_array.str());
+    // 返回结果包含 has_more 字段
+    std::string result = "{\"status\":\"success\",\"data\":" + json_array.str() + 
+                         ",\"has_more\":" + (messages.size() >= (size_t)limit ? "true" : "false") + "}";
+    
+    return "HTTP/1.1 200 OK\r\n"
+           "Content-Type: application/json\r\n"
+           "Content-Length: " + std::to_string(result.length()) + "\r\n"
+           "Connection: close\r\n"
+           "Access-Control-Allow-Origin: *\r\n"
+           "\r\n" + result;
 }
 
 void MessageService::broadcast_message(const Message& message) {

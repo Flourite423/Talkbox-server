@@ -20,8 +20,10 @@ public:
     Post get_post_by_id(int post_id);
     
     bool save_message(const Message& message);
-    std::vector<Message> get_messages(int user_id);
-    std::vector<Message> get_group_messages(int group_id);
+    std::vector<Message> get_messages(int user_id, int limit = 50, int before_id = -1);
+    std::vector<Message> get_messages_before(int user_id, int before_id, int limit = 50);
+    std::vector<Message> get_group_messages(int group_id, int limit = 50, int before_id = -1);
+    std::vector<Message> get_group_messages_before(int group_id, int before_id, int limit = 50);
     std::vector<User> get_user_contacts(int user_id);
     
     // 群组管理
@@ -33,7 +35,8 @@ public:
     bool is_user_in_group(int user_id, int group_id);
     
     bool create_post(const Post& post);
-    std::vector<Post> get_posts();
+    std::vector<Post> get_posts(int page = 1, int page_size = 20);
+    std::vector<Post> get_posts_page(int page, int page_size);
     bool reply_post(int post_id, int user_id, const std::string& content, const std::string& timestamp);
     std::vector<Reply> get_post_replies(int post_id);
     

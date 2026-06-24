@@ -84,6 +84,8 @@ void Server::handle_client(int client_fd) {
         send(client_fd, response.c_str(), response.length(), 0);
     }
     
+    // 客户端断开连接，清理在线状态
+    user_manager->remove_online_user_by_fd(client_fd);
     close(client_fd);
 }
 
@@ -177,6 +179,16 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
         return message_service->get_groups(query_string);
     } else if (path == "/api/get_group_messages" && method == "GET") {
         return message_service->get_group_messages(query_string);
+    } else if (path == "/api/heartbeat" && method == "POST") {
+        // 心跳接口：更新用户在线状态
+        std::string username = parse_json_value(body, "username");
+        if (!username.empty()) {
+            int user_id = user_manager->get_user_id_by_username(username);
+            if (user_id != -1 && user_manager->is_user_online(user_id)) {
+                return create_json_response("success", "heartbeat_ok");
+            }
+        }
+        return create_json_response("error", "用户未在线");
     } else if (method != "GET" && method != "POST") {
         // 不支持的HTTP方法
         return create_json_response("error", "不支持的HTTP方法: " + method);

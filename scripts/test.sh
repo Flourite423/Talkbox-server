@@ -425,4 +425,45 @@ curl -s -X POST $SERVER_URL/api/send_message \
   -d '{"receiver_id":"1","content":"缺少用户名","type":"text"}' | jq .
 echo ""
 
+# ========================================
+# 分页功能测试
+# ========================================
+echo "=========================================="
+echo "8. 分页功能测试"
+echo "=========================================="
 
+echo "8.1 测试消息分页加载..."
+curl -s -X GET "$SERVER_URL/api/get_messages?username=alice&limit=2" | jq '.has_more'
+echo ""
+
+echo "8.2 测试帖子分页..."
+curl -s -X GET "$SERVER_URL/api/get_posts?page=1&page_size=2" | jq '.has_more'
+echo ""
+
+echo "8.3 测试心跳接口..."
+curl -s -X POST $SERVER_URL/api/heartbeat \
+  -H "Content-Type: application/json" \
+  -d '{"username":"alice"}' | jq .
+echo ""
+
+echo "8.4 测试输入验证 - 用户名过短..."
+curl -s -X POST $SERVER_URL/api/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"ab","password":"123456"}' | jq .
+echo ""
+
+echo "8.5 测试输入验证 - 密码过短..."
+curl -s -X POST $SERVER_URL/api/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","password":"12345"}' | jq .
+echo ""
+
+echo "8.6 测试输入验证 - 用户名包含特殊字符..."
+curl -s -X POST $SERVER_URL/api/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"test@user","password":"123456"}' | jq .
+echo ""
+
+echo "=========================================="
+echo "测试完成！"
+echo "=========================================="

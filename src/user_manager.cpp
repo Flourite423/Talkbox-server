@@ -19,6 +19,22 @@ std::string UserManager::register_user(const std::string& body) {
         return create_json_response("error", "用户名和密码不能为空");
     }
     
+    // 输入验证
+    if (username.length() < 3 || username.length() > 20) {
+        return create_json_response("error", "用户名长度必须在3-20个字符之间");
+    }
+    
+    if (password.length() < 6 || password.length() > 50) {
+        return create_json_response("error", "密码长度必须在6-50个字符之间");
+    }
+    
+    // 检查用户名是否包含非法字符（只允许字母、数字、下划线）
+    for (char c : username) {
+        if (!std::isalnum(c) && c != '_') {
+            return create_json_response("error", "用户名只能包含字母、数字和下划线");
+        }
+    }
+    
     if (db->user_exists(username)) {
         return create_json_response("error", "用户名已存在");
     }
@@ -126,6 +142,21 @@ std::string UserManager::generate_token() {
 
 bool UserManager::is_valid_token(const std::string& token) {
     return get_user_id_by_token(token) != -1;
+}
+
+bool UserManager::is_user_online(int user_id) {
+    std::lock_guard<std::mutex> lock(users_mutex);
+    return online_users.find(user_id) != online_users.end();
+}
+
+void UserManager::remove_online_user_by_fd(int client_fd) {
+    std::lock_guard<std::mutex> lock(users_mutex);
+    for (auto it = online_users.begin(); it != online_users.end(); ++it) {
+        if (it->second.socket_fd == client_fd) {
+            online_users.erase(it);
+            break;
+        }
+    }
 }
 
 std::unordered_map<int, User>& UserManager::get_online_users() {

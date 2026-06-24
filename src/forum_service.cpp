@@ -44,8 +44,38 @@ std::string ForumService::create_post(const std::string& body) {
 }
 
 std::string ForumService::get_posts(const std::string& query_string) {
-    (void)query_string;  // 参数未使用，获取所有帖子时不需要特定参数
-    std::vector<Post> posts = db->get_posts();
+    // 解析分页参数
+    int page = 1;
+    int page_size = 20;
+    
+    if (!query_string.empty()) {
+        // 解析 page
+        size_t pos = query_string.find("page=");
+        if (pos != std::string::npos) {
+            pos += 5;
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) end = query_string.length();
+            try {
+                page = std::stoi(query_string.substr(pos, end - pos));
+                if (page <= 0) page = 1;
+            } catch (...) {}
+        }
+        
+        // 解析 page_size
+        pos = query_string.find("page_size=");
+        if (pos != std::string::npos) {
+            pos += 10;
+            size_t end = query_string.find('&', pos);
+            if (end == std::string::npos) end = query_string.length();
+            try {
+                page_size = std::stoi(query_string.substr(pos, end - pos));
+                if (page_size <= 0 || page_size > 100) page_size = 20;
+            } catch (...) {}
+        }
+    }
+    
+    std::vector<Post> posts = db->get_posts(page, page_size);
+    
     
     std::ostringstream json_array;
     json_array << "[";
@@ -66,26 +96,23 @@ std::string ForumService::get_posts(const std::string& query_string) {
                   << ",\"username\":\"" << posts[i].username << "\""
                   << ",\"title\":\"" << posts[i].title << "\""
                   << ",\"content\":\"" << posts[i].content << "\""
-                  << ",\"timestamp\":\"" << posts[i].timestamp << "\"";
-        
-        // 添加回复
-        if (!posts[i].replies.empty()) {
-            json_array << ",\"replies\":[";
-            for (size_t j = 0; j < posts[i].replies.size(); ++j) {
-                if (j > 0) {
-                    json_array << ",";
-                }
-                json_array << "\"" << posts[i].replies[j] << "\"";
-            }
-            json_array << "]";
-        }
-        
-        json_array << "}";
+                  << ",\"timestamp\":\"" << posts[i].timestamp << "\"}";
     }
     
     json_array << "]";
     
-    return create_json_response("success", json_array.str());
+    // 构建响应，包含分页信息
+    std::string result = "{\"status\":\"success\",\"data\":" + json_array.str() + 
+                         ",\"page\":" + std::to_string(page) +
+                         ",\"page_size\":" + std::to_string(page_size) +
+                         ",\"has_more\":" + (posts.size() >= (size_t)page_size ? "true" : "false") + "}";
+    
+    return "HTTP/1.1 200 OK\r\n"
+           "Content-Type: application/json\r\n"
+           "Content-Length: " + std::to_string(result.length()) + "\r\n"
+           "Connection: close\r\n"
+           "Access-Control-Allow-Origin: *\r\n"
+           "\r\n" + result;
 }
 
 std::string ForumService::reply_post(const std::string& body) {

@@ -57,4 +57,7 @@ std::string get_current_timestamp();
 std::string parse_json_value(const std::string& json, const std::string& key);
 std::string create_json_response(const std::string& status, const std::string& data = "");
 
+// 密码哈希函数 (PBKDF2-HMAC-SHA256)
+std::string hash_password(const std::string& password);
+bool verify_password(const std::string& password, const std::string& stored_hash);
 #endif // COMMON_H
