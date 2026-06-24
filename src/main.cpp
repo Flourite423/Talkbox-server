@@ -1,16 +1,14 @@
 #include "server.h"
 #include <iostream>
 #include <signal.h>
+#include <atomic>
 
+std::atomic<bool> g_running(true);
 Server* g_server = nullptr;
 
 void signal_handler(int signal) {
-    if (g_server) {
-        std::cout << "\n正在关闭服务器..." << std::endl;
-        delete g_server;
-        g_server = nullptr;
-    }
-    exit(0);
+    (void)signal;
+    g_running = false;
 }
 
 int main(int argc, char* argv[]) {
@@ -29,8 +27,10 @@ int main(int argc, char* argv[]) {
         g_server->run();
     } catch (const std::exception& e) {
         std::cerr << "服务器错误: " << e.what() << std::endl;
+        delete g_server;
         return 1;
     }
     
+    delete g_server;
     return 0;
 }

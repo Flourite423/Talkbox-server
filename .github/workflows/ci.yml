@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libsqlite3-dev
+    
+    - name: Build
+      run: make
+    
+    - name: Test build output
+      run: |
+        ls -la build/
+        test -f build/talkbox-server
+    
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libsqlite3-dev curl jq
+    
+    - name: Build
+      run: make
+    
+    - name: Start server
+      run: |
+        ./build/talkbox-server 9090 &
+        sleep 2
+    
+    - name: Run API tests
+      run: |
+        chmod +x scripts/test.sh
+        SERVER_URL="http://localhost:9090" ./scripts/test.sh
+    
+    - name: Stop server
+      if: always()
+      run: |
+        pkill -f talkbox-server || true

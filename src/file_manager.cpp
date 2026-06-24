@@ -32,6 +32,13 @@ std::string FileManager::upload_file(const std::string& body) {
         return create_json_response("error", "文件名和数据不能为空");
     }
     
+    // 安全检查：防止路径遍历攻击
+    if (filename.find("..") != std::string::npos || 
+        filename.find("/") != std::string::npos ||
+        filename.find("\\") != std::string::npos) {
+        return create_json_response("error", "文件名包含非法字符");
+    }
+    
     if (!ensure_upload_dir_exists()) {
         return create_json_response("error", "创建上传目录失败");
     }
@@ -67,6 +74,13 @@ std::string FileManager::download_file(const std::string& query_string) {
     
     if (filename.empty()) {
         return create_json_response("error", "文件名不能为空");
+    }
+    
+    // 安全检查：防止路径遍历攻击
+    if (filename.find("..") != std::string::npos || 
+        filename.find("/") != std::string::npos ||
+        filename.find("\\") != std::string::npos) {
+        return create_json_response("error", "文件名包含非法字符");
     }
     
     std::string file_path = upload_dir + "/" + filename;

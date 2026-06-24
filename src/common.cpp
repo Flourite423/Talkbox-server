@@ -14,7 +14,7 @@ std::string get_current_timestamp() {
 
 // 从JSON字符串中解析值
 std::string parse_json_value(const std::string& json, const std::string& key) {
-    std::cout<< "" << "Parsing JSON: " << json << " for key: " << key << std::endl;
+    // Debug: std::cout << "Parsing JSON: " << json << " for key: " << key << std::endl;
     std::string search_key = "\"" + key + "\"";
     size_t pos = json.find(search_key);
     if (pos == std::string::npos) {

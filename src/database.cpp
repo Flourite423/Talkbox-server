@@ -96,6 +96,11 @@ bool Database::init_database() {
 }
 
 bool Database::execute_sql(const std::string& sql) {
+    if (!db) {
+        std::cerr << "数据库连接未初始化" << std::endl;
+        return false;
+    }
+    
     char* error_msg = nullptr;
     int rc = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &error_msg);
     
@@ -109,6 +114,11 @@ bool Database::execute_sql(const std::string& sql) {
 }
 
 bool Database::create_user(const std::string& username, const std::string& password) {
+    if (!db) {
+        std::cerr << "数据库连接未初始化" << std::endl;
+        return false;
+    }
+    
     std::string sql = "INSERT INTO users (username, password) VALUES (?, ?);";
     
     sqlite3_stmt* stmt;
@@ -126,6 +136,11 @@ bool Database::create_user(const std::string& username, const std::string& passw
 }
 
 bool Database::user_exists(const std::string& username) {
+    if (!db) {
+        std::cerr << "数据库连接未初始化" << std::endl;
+        return false;
+    }
+    
     std::string sql = "SELECT user_id FROM users WHERE username = ?;";
     
     sqlite3_stmt* stmt;
@@ -142,6 +157,11 @@ bool Database::user_exists(const std::string& username) {
 }
 
 bool Database::verify_user(const std::string& username, const std::string& password, User& user) {
+    if (!db) {
+        std::cerr << "数据库连接未初始化" << std::endl;
+        return false;
+    }
+    
     std::string sql = "SELECT user_id, username, password FROM users WHERE username = ? AND password = ?;";
     
     sqlite3_stmt* stmt;
