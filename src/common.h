@@ -63,6 +63,10 @@ int safe_stoi(const std::string& s, int default_val = -1);
 // JSON 字符串转义（防止 JSON 注入）
 std::string escape_json_string(const std::string& s);
 
+// Base64 编解码（用于二进制文件传输）
+std::string base64_encode(const std::string& input);
+std::string base64_decode(const std::string& input);
+
 // 密码哈希函数 (PBKDF2-HMAC-SHA256)
 std::string hash_password(const std::string& password);
 bool verify_password(const std::string& password, const std::string& stored_hash);

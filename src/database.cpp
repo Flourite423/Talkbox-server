@@ -1,6 +1,12 @@
 #include "database.h"
 #include <iostream>
 #include <algorithm>
+
+// 安全获取 sqlite3 文本字段
+static std::string safe_sqlite3_text(sqlite3_stmt* stmt, int col) {
+    const char* text = reinterpret_cast<const char*>(sqlite3_column_text(stmt, col));
+    return text ? std::string(text) : std::string();
+}
 Database::Database(const std::string& db_path) {
     int rc = sqlite3_open(db_path.c_str(), &db);
     if (rc) {
@@ -181,8 +187,8 @@ bool Database::verify_user(const std::string& username, const std::string& passw
     
     if (sqlite3_step(stmt) == SQLITE_ROW) {
         user.user_id = sqlite3_column_int(stmt, 0);
-        user.username = (char*)sqlite3_column_text(stmt, 1);
-        std::string stored_hash = (char*)sqlite3_column_text(stmt, 2);
+        user.username = safe_sqlite3_text(stmt, 1);
+        std::string stored_hash = safe_sqlite3_text(stmt, 2);
         sqlite3_finalize(stmt);
         
         // 验证密码
@@ -281,9 +287,9 @@ std::vector<Message> Database::get_messages(int user_id, int limit, int before_i
             message.group_id = sqlite3_column_int(stmt, 3);
         }
         
-        message.content = (char*)sqlite3_column_text(stmt, 4);
-        message.type = (char*)sqlite3_column_text(stmt, 5);
-        message.timestamp = (char*)sqlite3_column_text(stmt, 6);
+        message.content = safe_sqlite3_text(stmt, 4);
+        message.type = safe_sqlite3_text(stmt, 5);
+        message.timestamp = safe_sqlite3_text(stmt, 6);
         
         messages.push_back(message);
     }
@@ -321,7 +327,7 @@ std::vector<User> Database::get_user_contacts(int user_id) {
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         User contact;
         contact.user_id = sqlite3_column_int(stmt, 0);
-        contact.username = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        contact.username = safe_sqlite3_text(stmt, 1);
         contact.online = sqlite3_column_int(stmt, 2) ? true : false;
         contact.password = ""; // 不返回密码信息
         contact.socket_fd = -1;
@@ -380,9 +386,9 @@ std::vector<Post> Database::get_posts(int page, int page_size) {
         Post post;
         post.post_id = sqlite3_column_int(stmt, 0);
         post.user_id = sqlite3_column_int(stmt, 1);
-        post.title = (char*)sqlite3_column_text(stmt, 2);
-        post.content = (char*)sqlite3_column_text(stmt, 3);
-        post.timestamp = (char*)sqlite3_column_text(stmt, 4);
+        post.title = safe_sqlite3_text(stmt, 2);
+        post.content = safe_sqlite3_text(stmt, 3);
+        post.timestamp = safe_sqlite3_text(stmt, 4);
         
         posts.push_back(post);
     }
@@ -430,8 +436,8 @@ std::vector<Reply> Database::get_post_replies(int post_id) {
         reply.reply_id = sqlite3_column_int(stmt, 0);
         reply.post_id = sqlite3_column_int(stmt, 1);
         reply.user_id = sqlite3_column_int(stmt, 2);
-        reply.content = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 3));
-        reply.timestamp = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4));
+        reply.content = safe_sqlite3_text(stmt, 3);
+        reply.timestamp = safe_sqlite3_text(stmt, 4);
         replies.push_back(reply);
     }
     
@@ -486,9 +492,9 @@ std::vector<Message> Database::get_group_messages(int group_id, int limit, int b
         }
         
         message.group_id = sqlite3_column_int(stmt, 3);
-        message.content = (char*)sqlite3_column_text(stmt, 4);
-        message.type = (char*)sqlite3_column_text(stmt, 5);
-        message.timestamp = (char*)sqlite3_column_text(stmt, 6);
+        message.content = safe_sqlite3_text(stmt, 4);
+        message.type = safe_sqlite3_text(stmt, 5);
+        message.timestamp = safe_sqlite3_text(stmt, 6);
         
         messages.push_back(message);
     }
@@ -542,10 +548,10 @@ std::vector<Group> Database::get_all_groups() {
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         Group group;
         group.group_id = sqlite3_column_int(stmt, 0);
-        group.group_name = (char*)sqlite3_column_text(stmt, 1);
-        group.description = (char*)sqlite3_column_text(stmt, 2);
+        group.group_name = safe_sqlite3_text(stmt, 1);
+        group.description = safe_sqlite3_text(stmt, 2);
         group.creator_id = sqlite3_column_int(stmt, 3);
-        group.created_time = (char*)sqlite3_column_text(stmt, 4);
+        group.created_time = safe_sqlite3_text(stmt, 4);
         
         groups.push_back(group);
     }
@@ -574,10 +580,10 @@ std::vector<Group> Database::get_user_groups(int user_id) {
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         Group group;
         group.group_id = sqlite3_column_int(stmt, 0);
-        group.group_name = (char*)sqlite3_column_text(stmt, 1);
-        group.description = (char*)sqlite3_column_text(stmt, 2);
+        group.group_name = safe_sqlite3_text(stmt, 1);
+        group.description = safe_sqlite3_text(stmt, 2);
         group.creator_id = sqlite3_column_int(stmt, 3);
-        group.created_time = (char*)sqlite3_column_text(stmt, 4);
+        group.created_time = safe_sqlite3_text(stmt, 4);
         
         groups.push_back(group);
     }
@@ -649,7 +655,7 @@ std::string Database::get_username_by_id(int user_id) {
     sqlite3_bind_int(stmt, 1, user_id);
     
     if (sqlite3_step(stmt) == SQLITE_ROW) {
-        std::string username = (char*)sqlite3_column_text(stmt, 0);
+        std::string username = safe_sqlite3_text(stmt, 0);
         sqlite3_finalize(stmt);
         return username;
     }
@@ -674,10 +680,10 @@ Post Database::get_post_by_id(int post_id) {
     if (sqlite3_step(stmt) == SQLITE_ROW) {
         post.post_id = sqlite3_column_int(stmt, 0);
         post.user_id = sqlite3_column_int(stmt, 1);
-        post.username = (char*)sqlite3_column_text(stmt, 2);
-        post.title = (char*)sqlite3_column_text(stmt, 3);
-        post.content = (char*)sqlite3_column_text(stmt, 4);
-        post.timestamp = (char*)sqlite3_column_text(stmt, 5);
+        post.username = safe_sqlite3_text(stmt, 2);
+        post.title = safe_sqlite3_text(stmt, 3);
+        post.content = safe_sqlite3_text(stmt, 4);
+        post.timestamp = safe_sqlite3_text(stmt, 5);
     }
     
     sqlite3_finalize(stmt);

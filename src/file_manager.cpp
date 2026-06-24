@@ -56,7 +56,9 @@ std::string FileManager::upload_file(const std::string& body) {
         return create_json_response("error", "无法创建文件");
     }
     
-    file << data;
+    // 解码 Base64 数据
+    std::string decoded_data = base64_decode(data);
+    file.write(decoded_data.c_str(), decoded_data.length());
     file.close();
     
     return create_json_response("success", "文件上传成功");
@@ -98,7 +100,10 @@ std::string FileManager::download_file(const std::string& query_string) {
     
     std::ostringstream ss;
     ss << file.rdbuf();
-    std::string data = ss.str();
+    std::string raw_data = ss.str();
+    
+    // 编码为 Base64
+    std::string data = base64_encode(raw_data);
     
     return create_json_response("success", data);
 }
