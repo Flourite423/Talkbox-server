@@ -120,6 +120,7 @@ bool Database::execute_sql(const std::string& sql) {
 }
 
 bool Database::create_user(const std::string& username, const std::string& password) {
+    std::lock_guard<std::mutex> lock(db_mutex);
     if (!db) {
         std::cerr << "数据库连接未初始化" << std::endl;
         return false;
@@ -204,6 +205,7 @@ bool Database::verify_user(const std::string& username, const std::string& passw
 }
 
 bool Database::save_message(const Message& message) {
+    std::lock_guard<std::mutex> lock(db_mutex);
     std::string sql = "INSERT INTO messages (sender_id, receiver_id, group_id, content, type, timestamp) VALUES (?, ?, ?, ?, ?, ?);";
     
     sqlite3_stmt* stmt;
@@ -235,6 +237,7 @@ bool Database::save_message(const Message& message) {
 }
 
 std::vector<Message> Database::get_messages(int user_id, int limit, int before_id) {
+    std::lock_guard<std::mutex> lock(db_mutex);
     std::vector<Message> messages;
     std::string sql;
     
@@ -341,6 +344,7 @@ std::vector<User> Database::get_user_contacts(int user_id) {
 }
 
 bool Database::create_post(const Post& post) {
+    std::lock_guard<std::mutex> lock(db_mutex);
     std::string sql = "INSERT INTO posts (user_id, title, content, timestamp) VALUES (?, ?, ?, ?);";
     
     sqlite3_stmt* stmt;
@@ -358,8 +362,8 @@ bool Database::create_post(const Post& post) {
     
     return rc == SQLITE_DONE;
 }
-
 std::vector<Post> Database::get_posts(int page, int page_size) {
+    std::lock_guard<std::mutex> lock(db_mutex);
     std::vector<Post> posts;
     
     if (!db) {

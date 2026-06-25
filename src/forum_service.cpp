@@ -29,6 +29,12 @@ std::string ForumService::create_post(const std::string& body) {
     if (title.empty() || content.empty()) {
         return create_json_response("error", "标题和内容不能为空");
     }
+    if (title.length() > 200) {
+        return create_json_response("error", "标题不能超过200个字符");
+    }
+    if (content.length() > 50000) {
+        return create_json_response("error", "内容不能超过50000个字符");
+    }
     
     Post post;
     post.user_id = user_id;

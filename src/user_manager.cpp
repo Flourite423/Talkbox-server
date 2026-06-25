@@ -1,6 +1,7 @@
 #include "user_manager.h"
 #include "database.h"
 #include "common.h"
+#include "logger.h"
 #include <iostream>
 #include <random>
 #include <algorithm>
@@ -40,8 +41,10 @@ std::string UserManager::register_user(const std::string& body) {
     }
     
     if (db->create_user(username, password)) {
+        LOG_INFO("新用户注册: " + username);
         return create_json_response("success", "注册成功");
     } else {
+        LOG_ERROR("用户注册失败: " + username);
         return create_json_response("error", "注册失败");
     }
 }
@@ -61,16 +64,24 @@ std::string UserManager::login_user(const std::string& body, int client_fd) {
     
     std::lock_guard<std::mutex> lock(users_mutex);
     
+    // 生成token
+    std::string token = generate_token();
+    
     // 更新用户信息
     user.online = true;
     user.socket_fd = client_fd;
-    // 不再需要token，清空token字段
-    user.token = "";
+    user.token = token;
     online_users[user.user_id] = user;
     
-    // 返回登录成功的用户信息（不包含token）
+    // 存储token到用户ID的映射
+    token_to_user_id[token] = user.user_id;
+    
+    LOG_INFO("用户登录成功: " + username + " (ID: " + std::to_string(user.user_id) + ")");
+    
+    // 返回登录成功的用户信息（包含token）
     std::string data = "{\"user_id\":" + std::to_string(user.user_id) + 
-                       ",\"username\":\"" + user.username + "\"}";
+                       ",\"username\":\"" + user.username + 
+                       "\",\"token\":\"" + token + "\"}";
     
     return create_json_response("success", data);
 }
@@ -91,8 +102,16 @@ std::string UserManager::logout_user(const std::string& body, int client_fd) {
     std::lock_guard<std::mutex> lock(users_mutex);
     
     if (online_users.find(user_id) != online_users.end()) {
+        // 移除token映射
+        std::string token = online_users[user_id].token;
+        if (!token.empty()) {
+            token_to_user_id.erase(token);
+        }
+        
         online_users[user_id].online = false;
         online_users.erase(user_id);
+        
+        LOG_INFO("用户登出: " + username + " (ID: " + std::to_string(user_id) + ")");
     }
     
     return create_json_response("success", "登出成功");

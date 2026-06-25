@@ -31,6 +31,9 @@ std::string MessageService::send_message(const std::string& body) {
     if (content.empty()) {
         return create_json_response("error", "消息内容不能为空");
     }
+    if (content.length() > 10000) {
+        return create_json_response("error", "消息内容不能超过10000个字符");
+    }
     
     if (type.empty()) {
         type = "text";

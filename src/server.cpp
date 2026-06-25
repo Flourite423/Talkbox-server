@@ -1,6 +1,7 @@
 #include "server.h"
 #include "database.h"
 #include "common.h"
+#include "logger.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -8,6 +9,8 @@
 #include <sstream>
 
 Server::Server(int port) : server_fd(-1), port(port) {
+    LOG_INFO("正在初始化服务器，端口: " + std::to_string(port));
+    
     // 初始化数据库
     db = std::make_unique<Database>("talkbox.db");
     
@@ -19,6 +22,7 @@ Server::Server(int port) : server_fd(-1), port(port) {
     
     // 设置服务器
     setup_server();
+    LOG_INFO("服务器初始化完成");
 }
 
 Server::~Server() {
@@ -55,7 +59,7 @@ void Server::setup_server() {
 }
 
 void Server::run() {
-    std::cout << "服务器已启动，监听端口: " << port << std::endl;
+    LOG_INFO("服务器已启动，监听端口: " + std::to_string(port));
     
     while (g_running) {
         sockaddr_in client_addr{};
@@ -74,12 +78,13 @@ void Server::run() {
         }).detach();
     }
     
-    std::cout << "服务器正在关闭..." << std::endl;
+    LOG_INFO("服务器正在关闭...");
 }
 
 
 
 void Server::handle_client(int client_fd) {
+    LOG_DEBUG("新客户端连接，fd: " + std::to_string(client_fd));
     // 增大缓冲区以支持大文件上传 (64KB)
     char buffer[65536];
     
@@ -105,8 +110,8 @@ void Server::handle_client(int client_fd) {
             total_sent += sent;
         }
     }
-    
     // 客户端断开连接，清理在线状态
+    LOG_DEBUG("客户端断开连接，fd: " + std::to_string(client_fd));
     user_manager->remove_online_user_by_fd(client_fd);
     close(client_fd);
 }
@@ -152,11 +157,13 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
     // 提取token
     std::string token = extract_token_from_request(request);
     
-    // 认证辅助函数：验证用户是否存在（已注册）
-    auto verify_authenticated = [&](const std::string& username) -> bool {
-        if (username.empty()) return false;
-        int user_id = user_manager->get_user_id_by_username(username);
-        return user_id != -1;  // 只检查用户是否存在，不检查是否在线
+    // 认证辅助函数：验证用户是否已登录且token有效
+    auto verify_authenticated = [&](const std::string& username, const std::string& token) -> bool {
+        if (username.empty() || token.empty()) return false;
+        int token_user_id = user_manager->get_user_id_by_token(token);
+        if (token_user_id == -1) return false;
+        int username_user_id = user_manager->get_user_id_by_username(username);
+        return token_user_id == username_user_id;  // token和username必须匹配
     };
     
     // 从 body 或 query_string 提取 username
@@ -198,7 +205,7 @@ std::string Server::handle_request(const std::string& request, int client_fd) {
     
     // 以下接口需要认证
     std::string username = extract_username(body, query_string);
-    if (!verify_authenticated(username)) {
+    if (!verify_authenticated(username, token)) {
         return create_json_response("error", "未登录或会话已过期");
     }
     

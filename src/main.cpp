@@ -1,8 +1,8 @@
 #include "server.h"
+#include "logger.h"
 #include <iostream>
 #include <signal.h>
 #include <atomic>
-
 std::atomic<bool> g_running(true);
 Server* g_server = nullptr;
 
@@ -12,20 +12,25 @@ void signal_handler(int signal) {
 }
 
 int main(int argc, char* argv[]) {
+    // 初始化日志系统
+    Logger::getInstance().setLogLevel(LogLevel::INFO);
+    Logger::getInstance().setLogFile("talkbox.log");
+    LOG_INFO("Talkbox 服务器启动中...");
+    
     int port = 8080;
     
     if (argc > 1) {
         port = std::atoi(argv[1]);
     }
-    
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
     
     try {
         g_server = new Server(port);
-        std::cout << "服务器启动在端口: " << port << std::endl;
+        LOG_INFO("服务器启动在端口: " + std::to_string(port));
         g_server->run();
     } catch (const std::exception& e) {
+        LOG_ERROR("服务器错误: " + std::string(e.what()));
         std::cerr << "服务器错误: " << e.what() << std::endl;
         delete g_server;
         return 1;

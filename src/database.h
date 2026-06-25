@@ -4,6 +4,7 @@
 #include <sqlite3.h>
 #include <string>
 #include <vector>
+#include <mutex>
 #include "common.h"
 
 class Database {
@@ -39,9 +40,9 @@ public:
     std::vector<Post> get_posts_page(int page, int page_size);
     bool reply_post(int post_id, int user_id, const std::string& content, const std::string& timestamp);
     std::vector<Reply> get_post_replies(int post_id);
-    
 private:
     sqlite3* db;
+    mutable std::mutex db_mutex;
     bool init_database();
     bool execute_sql(const std::string& sql);
 };
